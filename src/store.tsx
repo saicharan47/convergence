@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { getTeamProgress, subscribeToTeamProgress } from './lib/db';
+import { getTeamState, subscribeToTeamProgress } from './lib/db';
 
 export interface TeamProgress {
   team_id: string;
@@ -16,9 +16,10 @@ interface AppState {
   teamName: string | null;
   trackId: string | null;
   sessionToken: string | null;
+  realtimeKey: string | null;
   progress: TeamProgress | null;
   setRoomCode: (code: string | null) => void;
-  setTeamLogin: (teamId: string, teamName: string, trackId: string, token: string) => void;
+  setTeamLogin: (teamId: string, teamName: string, trackId: string, token: string, realtimeKey: string) => void;
   logout: () => void;
 }
 
@@ -30,42 +31,58 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [teamName, setTeamName] = useState<string | null>(() => localStorage.getItem('teamName'));
   const [trackId, setTrackId] = useState<string | null>(() => localStorage.getItem('trackId'));
   const [sessionToken, setSessionToken] = useState<string | null>(() => localStorage.getItem('sessionToken'));
-  
+  const [realtimeKey, setRealtimeKey] = useState<string | null>(() => localStorage.getItem('realtimeKey'));
   const [progress, setProgress] = useState<TeamProgress | null>(null);
 
-  // Initialize progress and subscription if logged in
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
-    
-    if (sessionToken && teamId) {
-      // Fetch initial state
-      getTeamProgress(teamId).then((data) => {
-        if (data) setProgress(data as TeamProgress);
-      });
+    let cancelled = false;
 
-      // Subscribe to changes
-      unsubscribe = subscribeToTeamProgress(teamId, (newProgress) => {
-        setProgress(newProgress as TeamProgress);
+    if (sessionToken) {
+      getTeamState(sessionToken).then(state => {
+        if (cancelled) return;
+        if (!state) {
+          setSessionToken(null);
+          setRealtimeKey(null);
+          localStorage.removeItem('sessionToken');
+          localStorage.removeItem('realtimeKey');
+          setProgress(null);
+          return;
+        }
+        setTeamId(state.team_id);
+        setTeamName(state.name);
+        setTrackId(state.track_id);
+        setRealtimeKey(state.realtime_key);
+        setProgress(state.progress as TeamProgress | null);
+        localStorage.setItem('teamId', state.team_id);
+        localStorage.setItem('teamName', state.name);
+        localStorage.setItem('trackId', state.track_id);
+        localStorage.setItem('realtimeKey', state.realtime_key);
+        unsubscribe = subscribeToTeamProgress(state.realtime_key, next => {
+          if (!cancelled) setProgress(next as TeamProgress);
+        });
       });
     } else {
       setProgress(null);
     }
 
     return () => {
+      cancelled = true;
       if (unsubscribe) unsubscribe();
     };
-  }, [sessionToken, teamId]);
+  }, [sessionToken]);
 
-  const setTeamLogin = (id: string, name: string, track: string, token: string) => {
+  const setTeamLogin = (id: string, name: string, track: string, token: string, key: string) => {
     setTeamId(id);
     setTeamName(name);
     setTrackId(track);
     setSessionToken(token);
-    
+    setRealtimeKey(key);
     localStorage.setItem('teamId', id);
     localStorage.setItem('teamName', name);
     localStorage.setItem('trackId', track);
     localStorage.setItem('sessionToken', token);
+    localStorage.setItem('realtimeKey', key);
   };
 
   const logout = () => {
@@ -74,8 +91,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTeamName(null);
     setTrackId(null);
     setSessionToken(null);
+    setRealtimeKey(null);
     setProgress(null);
-    localStorage.clear();
+    localStorage.removeItem('roomCode');
+    localStorage.removeItem('teamId');
+    localStorage.removeItem('teamName');
+    localStorage.removeItem('trackId');
+    localStorage.removeItem('sessionToken');
+    localStorage.removeItem('realtimeKey');
   };
 
   const handleSetRoomCode = (code: string | null) => {
@@ -85,19 +108,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AppContext.Provider
-      value={{
-        roomCode,
-        teamId,
-        teamName,
-        trackId,
-        sessionToken,
-        progress,
-        setRoomCode: handleSetRoomCode,
-        setTeamLogin,
-        logout,
-      }}
-    >
+    <AppContext.Provider value={{ roomCode, teamId, teamName, trackId, sessionToken, realtimeKey, progress, setRoomCode: handleSetRoomCode, setTeamLogin, logout }}>
       {children}
     </AppContext.Provider>
   );
@@ -105,8 +116,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 export function useAppContext() {
   const context = useContext(AppContext);
-  if (context === undefined) {
-    throw new Error('useAppContext must be used within an AppProvider');
-  }
+  if (!context) throw new Error('useAppContext must be used within an AppProvider');
   return context;
 }
