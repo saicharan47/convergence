@@ -1,0 +1,67 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AppShell } from '../components/AppShell';
+import { ParchmentCard } from '../components/ParchmentCard';
+import { PrimaryButton } from '../components/PrimaryButton';
+import { useAppContext } from '../store';
+import { ChestIcon } from '../icons/CustomIcons';
+
+export function TreasureScreen() {
+  const navigate = useNavigate();
+  const { progress, teamName } = useAppContext();
+
+  if (!progress || progress.current_clue <= 9) {
+    // If somehow they get here without finishing, bump them back
+    navigate('/dashboard', { replace: true });
+    return null;
+  }
+
+  const elapsed = progress.finish_time && progress.start_time
+    ? new Date(progress.finish_time).getTime() - new Date(progress.start_time).getTime()
+    : 0;
+    
+  const totalSeconds = Math.floor(elapsed / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  
+  const formattedTime = [
+    hours.toString().padStart(2, '0'),
+    minutes.toString().padStart(2, '0'),
+    seconds.toString().padStart(2, '0')
+  ].join(':');
+
+  return (
+    <AppShell title="THE CONVERGENCE" showMenu>
+      <div className="flex-1 flex flex-col items-center justify-center p-4 py-8 animate-fade-in-up">
+        
+        <div className="mb-8 w-40 h-40 rounded-full overflow-hidden border-2 border-gold/40 shadow-[0_0_30px_rgba(201,162,75,0.4)] mx-auto relative bg-void/50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-gold/10 animate-pulse pointer-events-none" />
+          <ChestIcon className="w-20 h-20 text-gold" />
+        </div>
+        
+        <ParchmentCard variant="dark" className="w-full max-w-sm p-8 text-center">
+          <h2 className="font-display text-3xl text-gold uppercase tracking-widest mb-2 text-glow">
+            Treasure Found
+          </h2>
+          <p className="font-sans text-sm text-offwhite/90 italic mb-8 leading-relaxed">
+            Congratulations, {teamName}. You have successfully deciphered all the clues and reached the convergence point.
+          </p>
+          
+          <div className="bg-void/40 border border-gold/20 rounded p-6 mb-8 shadow-inner">
+            <p className="text-muted text-xs uppercase tracking-widest mb-1">Total Time</p>
+            <p className="font-mono text-3xl text-offwhite text-glow">{formattedTime}</p>
+          </div>
+          
+          <PrimaryButton 
+            variant="parchment"
+            onClick={() => navigate('/leaderboard')}
+          >
+            View Standings
+          </PrimaryButton>
+        </ParchmentCard>
+        
+      </div>
+    </AppShell>
+  );
+}

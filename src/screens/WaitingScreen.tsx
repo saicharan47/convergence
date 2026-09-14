@@ -1,0 +1,48 @@
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AppShell } from '../components/AppShell';
+import { useAppContext } from '../store';
+import { LogOut } from 'lucide-react';
+
+export function WaitingScreen() {
+  const navigate = useNavigate();
+  const { progress, logout } = useAppContext();
+
+  useEffect(() => {
+    if (progress?.hunt_started) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [progress?.hunt_started, navigate]);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  return (
+    <AppShell title="THE CONVERGENCE" showMenu>
+      <div className="flex-1 flex flex-col items-center justify-center text-center animate-fade-in relative z-10">
+        <div className="mb-8 w-40 h-40 rounded-full overflow-hidden border-2 border-gold/40 shadow-[0_0_30px_rgba(201,162,75,0.2)] mx-auto relative">
+          <img src="/images/hourglass.jpg" alt="Hourglass" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-void/20 animate-pulse pointer-events-none" />
+        </div>
+        
+        <h2 className="font-display text-2xl text-offwhite uppercase tracking-widest mb-4">
+          Awaiting Orders
+        </h2>
+        
+        <p className="text-muted text-sm max-w-[280px] mx-auto mb-12">
+          The hunt has not yet begun. Gather your crew and prepare. You will be automatically redirected when the signal is given.
+        </p>
+
+        <button 
+          onClick={handleLogout}
+          className="flex items-center gap-2 px-6 py-3 border border-red-900/50 text-red-500 hover:bg-red-950/30 rounded transition-colors text-sm font-semibold uppercase tracking-widest"
+        >
+          <LogOut className="w-4 h-4" />
+          Abandon Ship
+        </button>
+      </div>
+    </AppShell>
+  );
+}

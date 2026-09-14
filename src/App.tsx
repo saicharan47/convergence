@@ -1,0 +1,58 @@
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { HomeScreen } from './screens/HomeScreen';
+import { RoomCodeScreen } from './screens/RoomCodeScreen';
+import { TeamSelectionScreen } from './screens/TeamSelectionScreen';
+import { WaitingScreen } from './screens/WaitingScreen';
+import { DashboardScreen } from './screens/DashboardScreen';
+import { ActiveClueScreen } from './screens/ActiveClueScreen';
+import { SuccessScreen } from './screens/SuccessScreen';
+import { TreasureScreen } from './screens/TreasureScreen';
+import { LeaderboardScreen } from './screens/LeaderboardScreen';
+import { OrganizerLoginScreen } from './screens/organizer/OrganizerLoginScreen';
+import { OrganizerDashboardScreen } from './screens/organizer/OrganizerDashboardScreen';
+import { ClueManagementScreen } from './screens/organizer/ClueManagementScreen';
+import { OrganizerLeaderboardScreen } from './screens/organizer/OrganizerLeaderboardScreen';
+import { useAppContext } from './store';
+
+import { AnimatePresence } from 'framer-motion';
+
+import { PageTransition } from './components/PageTransition';
+
+function AppRoutes() {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<PageTransition><HomeScreen /></PageTransition>} />
+        <Route path="/room-code" element={<PageTransition><RoomCodeScreen /></PageTransition>} />
+        <Route path="/team" element={<PageTransition><TeamSelectionScreen /></PageTransition>} />
+        <Route path="/waiting" element={<PageTransition><WaitingScreen /></PageTransition>} />
+        <Route path="/dashboard" element={<PageTransition><DashboardScreen /></PageTransition>} />
+        <Route path="/clue/:id" element={<PageTransition><ActiveClueScreen /></PageTransition>} />
+        <Route path="/clue/:id/success" element={<PageTransition><SuccessScreen /></PageTransition>} />
+        <Route path="/treasure" element={<PageTransition><TreasureScreen /></PageTransition>} />
+        <Route path="/leaderboard" element={<PageTransition><LeaderboardScreen /></PageTransition>} />
+        
+        {/* Organizer Routes */}
+        <Route path="/organizer" element={<OrganizerLoginScreen />} />
+        <Route path="/organizer/dashboard" element={<OrganizerDashboardScreen />} />
+        <Route path="/organizer/clues" element={<ClueManagementScreen />} />
+        <Route path="/organizer/leaderboard" element={<OrganizerLeaderboardScreen />} />
+
+        <Route path="/profile" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AnimatePresence>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  );
+}
+
+export default App;

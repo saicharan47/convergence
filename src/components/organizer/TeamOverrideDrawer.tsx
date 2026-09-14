@@ -1,0 +1,136 @@
+import React from 'react';
+import { X, FastForward, Rewind, RotateCcw, Flag } from 'lucide-react';
+import type { TeamData } from '../../lib/db';
+import { manuallyAdvanceClue, manuallyRewindClue, resetTeamProgress, disqualifyTeam } from '../../lib/db';
+
+interface TeamOverrideDrawerProps {
+  team: TeamData;
+  onClose: () => void;
+}
+
+export function TeamOverrideDrawer({ team, onClose }: TeamOverrideDrawerProps) {
+  
+  const handleAdvance = async () => {
+    if (confirm(`Advance ${team.name} to clue ${team.unlockedClueIndex + 1}?`)) {
+      await manuallyAdvanceClue(team.id);
+      onClose(); // In a real app with subscriptions, this would auto-update. Here we just close to force a fresh click or rely on the parent's poll.
+    }
+  };
+
+  const handleRewind = async () => {
+    if (confirm(`Rewind ${team.name} to clue ${team.unlockedClueIndex - 1}?`)) {
+      await manuallyRewindClue(team.id);
+      onClose();
+    }
+  };
+
+  const handleReset = async () => {
+    if (confirm(`Are you absolutely sure you want to RESET ${team.name}? This cannot be undone.`)) {
+      await resetTeamProgress(team.id);
+      onClose();
+    }
+  };
+
+  const handleDisqualify = async () => {
+    const action = team.disqualified ? "Re-qualify" : "Disqualify";
+    if (confirm(`${action} ${team.name}?`)) {
+      await disqualifyTeam(team.id, !team.disqualified);
+      onClose();
+    }
+  };
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-black/60 z-40" 
+        onClick={onClose}
+      />
+      
+      {/* Drawer */}
+      <div className="fixed inset-y-0 right-0 w-96 bg-[#111] border-l border-gray-800 z-50 flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
+        <div className="p-6 border-b border-gray-800 flex justify-between items-start bg-[#0a0a0a]">
+          <div>
+            <h2 className="text-xl font-display text-gold uppercase tracking-widest">{team.name}</h2>
+            <p className="text-sm text-gray-500 uppercase tracking-widest mt-1">Track {team.track}</p>
+          </div>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-white transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 flex-1 overflow-y-auto space-y-8">
+          
+          <section>
+            <h3 className="text-xs uppercase tracking-widest text-gray-500 mb-4 font-semibold">Current Status</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-[#1a1a1a] p-4 rounded border border-gray-800">
+                <div className="text-xs text-gray-500 uppercase mb-1">Clue</div>
+                <div className="text-2xl font-mono text-gold">{team.unlockedClueIndex}</div>
+              </div>
+              <div className="bg-[#1a1a1a] p-4 rounded border border-gray-800">
+                <div className="text-xs text-gray-500 uppercase mb-1">Secret Code</div>
+                <div className="text-xl font-mono text-white tracking-widest">{team.secretCode}</div>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-xs uppercase tracking-widest text-gray-500 mb-4 font-semibold">Manual Overrides</h3>
+            <div className="space-y-3">
+              <button 
+                onClick={handleAdvance}
+                disabled={team.unlockedClueIndex >= 9}
+                className="w-full flex items-center gap-3 p-3 bg-[#1a1a1a] hover:bg-[#222] border border-gray-700 rounded transition-colors text-left disabled:opacity-50"
+              >
+                <div className="p-2 bg-green-900/30 text-green-500 rounded">
+                  <FastForward className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="font-medium text-gray-200">Force Advance</div>
+                  <div className="text-xs text-gray-500">Move to next clue instantly</div>
+                </div>
+              </button>
+
+              <button 
+                onClick={handleRewind}
+                disabled={team.unlockedClueIndex <= 1}
+                className="w-full flex items-center gap-3 p-3 bg-[#1a1a1a] hover:bg-[#222] border border-gray-700 rounded transition-colors text-left disabled:opacity-50"
+              >
+                <div className="p-2 bg-amber-900/30 text-amber-500 rounded">
+                  <Rewind className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="font-medium text-gray-200">Force Rewind</div>
+                  <div className="text-xs text-gray-500">Move back to previous clue</div>
+                </div>
+              </button>
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-xs uppercase tracking-widest text-red-500/70 mb-4 font-semibold">Danger Zone</h3>
+            <div className="space-y-3 border border-red-900/30 rounded p-4 bg-red-950/10">
+              <button 
+                onClick={handleDisqualify}
+                className="w-full flex items-center justify-center gap-2 p-3 bg-transparent hover:bg-red-900/20 text-red-400 border border-red-900 rounded transition-colors text-sm uppercase tracking-wider font-semibold"
+              >
+                <Flag className="w-4 h-4" />
+                {team.disqualified ? "Remove Disqualification" : "Disqualify Team"}
+              </button>
+              
+              <button 
+                onClick={handleReset}
+                className="w-full flex items-center justify-center gap-2 p-3 bg-red-900 hover:bg-red-800 text-white rounded transition-colors text-sm uppercase tracking-wider font-semibold"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Reset Progress
+              </button>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </>
+  );
+}
