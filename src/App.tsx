@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { HomeScreen } from './screens/HomeScreen';
 import { RoomCodeScreen } from './screens/RoomCodeScreen';
@@ -13,7 +12,6 @@ import { OrganizerLoginScreen } from './screens/organizer/OrganizerLoginScreen';
 import { OrganizerDashboardScreen } from './screens/organizer/OrganizerDashboardScreen';
 import { ClueManagementScreen } from './screens/organizer/ClueManagementScreen';
 import { OrganizerLeaderboardScreen } from './screens/organizer/OrganizerLeaderboardScreen';
-import { useAppContext } from './store';
 
 import { AnimatePresence } from 'framer-motion';
 
@@ -33,7 +31,7 @@ function AppRoutes() {
         <Route path="/clue/:id/success" element={<PageTransition><SuccessScreen /></PageTransition>} />
         <Route path="/treasure" element={<PageTransition><TreasureScreen /></PageTransition>} />
         <Route path="/leaderboard" element={<PageTransition><LeaderboardScreen /></PageTransition>} />
-        
+
         {/* Organizer Routes */}
         <Route path="/organizer" element={<OrganizerLoginScreen />} />
         <Route path="/organizer/dashboard" element={<OrganizerDashboardScreen />} />
