@@ -63,8 +63,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           if (!cancelled) setProgress(next as TeamProgress);
         });
       });
-    } else {
-      setProgress(null);
     }
 
     return () => {
