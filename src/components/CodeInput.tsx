@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import { cn } from '../lib/utils';
 
 interface CodeInputProps {
@@ -9,46 +9,37 @@ interface CodeInputProps {
 
 export function CodeInput({ value, onChange, error }: CodeInputProps) {
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
-  const [shake, setShake] = useState(false);
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
-  useEffect(() => {
-    if (error) {
-      setShake(true);
-      const timer = setTimeout(() => setShake(false), 500);
-      return () => clearTimeout(timer);
-    }
-  }, [error]);
-
   const handleChange = (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const char = e.target.value.slice(-1).toUpperCase();
-    const chars = value.split('').concat(Array(5).fill(' ')).slice(0, 5);
-    if (/^[A-Z0-9]$/.test(char) || char === '') {
-      chars[i] = char === '' ? ' ' : char;
-      const newValue = chars.join('');
-      onChange(newValue);
-      
-      if (char !== '' && i < 4) {
-        inputsRef.current[i + 1]?.focus();
-      }
+    const char = e.target.value.replace(/\D/g, '').slice(-1);
+    const chars = value.split('').concat(Array(5).fill('')).slice(0, 5);
+    chars[i] = char;
+    onChange(chars.join(''));
+
+    if (char && i < 4) {
+      inputsRef.current[i + 1]?.focus();
     }
   };
 
   const handleKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && value[i] === ' ' && i > 0) {
+    if (e.key === 'Backspace' && !value[i] && i > 0) {
       inputsRef.current[i - 1]?.focus();
     }
   };
 
   return (
-    <div className={cn("flex justify-between gap-2 max-w-[280px] mx-auto", shake && "animate-shake")}>
+    <div className={cn("flex justify-between gap-2 max-w-[280px] mx-auto", error && "animate-shake")}>
       {[0, 1, 2, 3, 4].map((i) => (
         <input
           key={i}
           ref={(el) => { inputsRef.current[i] = el; }}
           type="text"
-          maxLength={2}
-          value={value[i] !== ' ' && value[i] !== undefined ? value[i] : ''}
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={1}
+          autoComplete="one-time-code"
+          value={value[i] || ''}
           onChange={(e) => handleChange(i, e)}
           onKeyDown={(e) => handleKeyDown(i, e)}
           onFocus={() => setFocusedIndex(i)}
