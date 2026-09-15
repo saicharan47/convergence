@@ -16,7 +16,6 @@ export function ActiveClueScreen() {
   const [code, setCode] = useState('');
   const [error, setError] = useState(false);
   const [clue, setClue] = useState<MockClue | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isVerifying, setIsVerifying] = useState(false);
   const clueNum = Number.parseInt(id || '', 10);
 
@@ -32,13 +31,10 @@ export function ActiveClueScreen() {
     }
 
     let cancelled = false;
-    setIsLoading(true);
-    setClue(null);
     getClues(trackId || '').then(clues => {
       if (cancelled) return;
       const activeClue = clues.find(c => c.clue_number === clueNum);
-      if (activeClue) setClue(activeClue);
-      setIsLoading(false);
+      setClue(activeClue || null);
     });
     return () => { cancelled = true; };
   }, [clueNum, progress, trackId, navigate]);
@@ -60,6 +56,8 @@ export function ActiveClueScreen() {
     }
   };
 
+  const isLoading = clue === null;
+
   if (isLoading) {
     return (
       <AppShell showBack showMenu title="THE CONVERGENCE">
@@ -68,16 +66,6 @@ export function ActiveClueScreen() {
             <div className="mx-auto mb-4 h-8 w-8 rounded-full border-2 border-gold/30 border-t-gold animate-spin" />
             <p className="text-xs uppercase tracking-widest text-muted">Unsealing the next clue…</p>
           </div>
-        </div>
-      </AppShell>
-    );
-  }
-
-  if (!clue) {
-    return (
-      <AppShell showBack showMenu title="THE CONVERGENCE">
-        <div className="flex-1 flex items-center justify-center p-6 text-center">
-          <p className="text-sm text-red-300">This clue could not be loaded. Return to the dashboard and try again.</p>
         </div>
       </AppShell>
     );
