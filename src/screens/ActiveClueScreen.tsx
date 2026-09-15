@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
 import { ParchmentCard } from '../components/ParchmentCard';
@@ -26,8 +26,6 @@ export function ActiveClueScreen() {
       return;
     }
 
-    // Only the single server-authoritative current clue is actionable.
-    // Completed clues and future clues cannot be reopened through the URL.
     if (clueNum !== progress.current_clue) {
       navigate('/dashboard', { replace: true });
       return;
@@ -112,7 +110,7 @@ export function ActiveClueScreen() {
             </div>
           )}
           <h3 className="font-display text-lg text-gold font-bold mb-2">{clue.title}</h3>
-          <p className="font-sans text-sm text-offwhite/90 leading-relaxed italic mb-4">"{clue.question}"</p>
+          <p className="font-sans text-sm text-offwhite/90 leading-relaxed italic mb-4">&quot;{clue.question}&quot;</p>
           <div className="h-px w-full bg-gold/20 my-4" />
           <p className="font-sans text-xs text-offwhite/60 uppercase tracking-wider font-semibold">Instruction: {clue.instruction}</p>
         </ParchmentCard>
