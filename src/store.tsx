@@ -38,36 +38,45 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
     let cancelled = false;
+    let refreshInterval: number | undefined;
 
-    if (sessionToken) {
-      getTeamState(sessionToken).then(state => {
-        if (cancelled) return;
-        if (!state) {
-          setSessionToken(null);
-          setRealtimeKey(null);
-          localStorage.removeItem('sessionToken');
-          localStorage.removeItem('realtimeKey');
-          setProgress(null);
-          return;
-        }
-        setTeamId(state.team_id);
-        setTeamName(state.name);
-        setTrackId(state.track_id);
-        setRealtimeKey(state.realtime_key);
-        setProgress(state.progress as TeamProgress | null);
-        localStorage.setItem('teamId', state.team_id);
-        localStorage.setItem('teamName', state.name);
-        localStorage.setItem('trackId', state.track_id);
-        localStorage.setItem('realtimeKey', state.realtime_key);
+    const refresh = async () => {
+      if (!sessionToken) return;
+      const state = await getTeamState(sessionToken);
+      if (cancelled) return;
+      if (!state) {
+        setSessionToken(null);
+        setRealtimeKey(null);
+        localStorage.removeItem('sessionToken');
+        localStorage.removeItem('realtimeKey');
+        setProgress(null);
+        return;
+      }
+      setTeamId(state.team_id);
+      setTeamName(state.name);
+      setTrackId(state.track_id);
+      setRealtimeKey(state.realtime_key);
+      setProgress(state.progress as TeamProgress | null);
+      localStorage.setItem('teamId', state.team_id);
+      localStorage.setItem('teamName', state.name);
+      localStorage.setItem('trackId', state.track_id);
+      localStorage.setItem('realtimeKey', state.realtime_key);
+      if (!unsubscribe && state.realtime_key) {
         unsubscribe = subscribeToTeamProgress(state.realtime_key, next => {
           if (!cancelled) setProgress(next as TeamProgress);
         });
-      });
+      }
+    };
+
+    if (sessionToken) {
+      void refresh();
+      refreshInterval = window.setInterval(() => void refresh(), 5000);
     }
 
     return () => {
       cancelled = true;
       if (unsubscribe) unsubscribe();
+      if (refreshInterval) window.clearInterval(refreshInterval);
     };
   }, [sessionToken]);
 
@@ -106,11 +115,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     else localStorage.removeItem('roomCode');
   };
 
-  return (
-    <AppContext.Provider value={{ roomCode, teamId, teamName, trackId, sessionToken, realtimeKey, progress, setRoomCode: handleSetRoomCode, setTeamLogin, logout }}>
-      {children}
-    </AppContext.Provider>
-  );
+  return <AppContext.Provider value={{ roomCode, teamId, teamName, trackId, sessionToken, realtimeKey, progress, setRoomCode: handleSetRoomCode, setTeamLogin, logout }}>{children}</AppContext.Provider>;
 }
 
 export function useAppContext() {
