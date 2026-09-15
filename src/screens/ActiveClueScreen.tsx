@@ -6,7 +6,6 @@ import { CodeInput } from '../components/CodeInput';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { useAppContext } from '../store';
 import { verifyClueCode, getClues, type MockClue } from '../lib/db';
-import { cn } from '../lib/utils';
 import { motion } from 'framer-motion';
 
 export function ActiveClueScreen() {
@@ -15,7 +14,7 @@ export function ActiveClueScreen() {
   const { trackId, sessionToken, progress } = useAppContext();
   const [code, setCode] = useState('');
   const [error, setError] = useState(false);
-  const [clue, setClue] = useState<MockClue | null>(null);
+  const [clue, setClue] = useState<MockClue | null | undefined>(undefined);
   const [isVerifying, setIsVerifying] = useState(false);
   const clueNum = Number.parseInt(id || '', 10);
 
@@ -56,9 +55,7 @@ export function ActiveClueScreen() {
     }
   };
 
-  const isLoading = clue === null;
-
-  if (isLoading) {
+  if (clue === undefined) {
     return (
       <AppShell showBack showMenu title="THE CONVERGENCE">
         <div className="flex-1 flex items-center justify-center py-16">
@@ -66,6 +63,16 @@ export function ActiveClueScreen() {
             <div className="mx-auto mb-4 h-8 w-8 rounded-full border-2 border-gold/30 border-t-gold animate-spin" />
             <p className="text-xs uppercase tracking-widest text-muted">Unsealing the next clue…</p>
           </div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!clue) {
+    return (
+      <AppShell showBack showMenu title="THE CONVERGENCE">
+        <div className="flex-1 flex items-center justify-center p-6 text-center">
+          <p className="text-sm text-red-300">This clue could not be loaded. Return to the dashboard and try again.</p>
         </div>
       </AppShell>
     );
@@ -103,7 +110,7 @@ export function ActiveClueScreen() {
           <p className="font-sans text-xs text-offwhite/60 uppercase tracking-wider font-semibold">Instruction: {clue.instruction}</p>
         </ParchmentCard>
 
-        <motion.div className={cn("mt-auto", error && "animate-shake")}>
+        <motion.div className="mt-auto">
           <div className="mb-8">
             <CodeInput value={code} onChange={(val) => { setCode(val.replace(/\D/g, '').slice(0, 5)); setError(false); }} error={error} />
             {error && <p className="mt-3 text-center text-red-400 text-xs uppercase tracking-widest">The mark does not match.</p>}
