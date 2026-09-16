@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { HomeScreen } from './screens/HomeScreen';
-import { RoomCodeScreen } from './screens/RoomCodeScreen';
 import { TeamSelectionScreen } from './screens/TeamSelectionScreen';
 import { WaitingScreen } from './screens/WaitingScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
@@ -22,7 +21,6 @@ function AppRoutes() {
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<PageTransition><HomeScreen /></PageTransition>} />
-        <Route path="/room-code" element={<PageTransition><RoomCodeScreen /></PageTransition>} />
         <Route path="/team" element={<PageTransition><TeamSelectionScreen /></PageTransition>} />
         <Route path="/waiting" element={<PageTransition><WaitingScreen /></PageTransition>} />
         <Route path="/dashboard" element={<PageTransition><DashboardScreen /></PageTransition>} />
