@@ -18,8 +18,8 @@ export async function joinRoom(roomCode: string): Promise<RoomData | null> {
   return { id: data.id, code: data.code, isActive: Boolean(data.isActive), isHuntStarted: Boolean(data.isHuntStarted), tracks: Array.isArray(data.tracks) ? data.tracks : [] };
 }
 
-export async function authenticateTeam(roomCode: string, teamName: string, password: string): Promise<{ token: string; realtime_key: string; team_id: string; name: string; track_id: string } | null> {
-  const { data, error } = await supabase.rpc('login_team', { p_room_code: roomCode.trim(), p_team_name: teamName.trim(), p_password: password });
+export async function authenticateTeam(teamName: string, password: string): Promise<{ token: string; realtime_key: string; team_id: string; name: string; track_id: string } | null> {
+  const { data, error } = await supabase.rpc('login_team', { p_team_name: teamName.trim(), p_password: password });
   if (error || !data) { console.error('Team login error:', error); return null; }
   return data;
 }
