@@ -62,8 +62,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('trackId', state.track_id);
       localStorage.setItem('realtimeKey', state.realtime_key);
       if (!unsubscribe && state.realtime_key) {
-        unsubscribe = subscribeToTeamProgress(state.realtime_key, next => {
-          if (!cancelled) setProgress(next as TeamProgress);
+        // Broadcast is only a wake-up signal. Never trust client-supplied progress;
+        // re-fetch the authoritative state through the token-protected RPC.
+        unsubscribe = subscribeToTeamProgress(state.realtime_key, () => {
+          if (!cancelled) void refresh();
         });
       }
     };
@@ -120,6 +122,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 export function useAppContext() {
   const context = useContext(AppContext);
-  if (!context) throw new Error('useAppContext must be used within an AppProvider');
+  if (!context) throw new Error('useAppContext must be used within AppProvider');
   return context;
 }
