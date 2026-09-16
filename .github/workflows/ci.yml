@@ -36,7 +36,7 @@ jobs:
           trap cleanup EXIT
           for attempt in {1..30}; do
             if curl --fail --silent --show-error http://127.0.0.1:5173/ > /tmp/convergence-home.html; then
-              exit 0
+              break
             fi
             if ! kill -0 "$pid" 2>/dev/null; then
               cat /tmp/convergence-vite.log
@@ -44,5 +44,9 @@ jobs:
             fi
             sleep 1
           done
-          cat /tmp/convergence-vite.log
-          exit 1
+          test -s /tmp/convergence-home.html
+          for route in /team /waiting /dashboard /clue/1 /clue/1/success /treasure /leaderboard /organizer /organizer/dashboard /organizer/clues /organizer/leaderboard /profile /not-a-real-route; do
+            curl --fail --silent --show-error "http://127.0.0.1:5173${route}" > /tmp/convergence-route.html
+            test -s /tmp/convergence-route.html
+            grep -qi '<!doctype html' /tmp/convergence-route.html
+          done
