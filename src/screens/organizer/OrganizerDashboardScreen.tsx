@@ -79,7 +79,7 @@ export function OrganizerDashboardScreen() {
   };
 
   const handleGlobalStart = () => run('global-start', async () => {
-    if (confirm('Enable the hunt master switch? Track start controls still determine which tracks are live.')) await setGlobalHuntStatus(true);
+    if (confirm('Start the hunt for ALL tracks and ALL eligible teams now?')) await setGlobalHuntStatus(true);
   });
 
   const handleGlobalReset = () => run('global-reset', async () => {
@@ -138,7 +138,7 @@ export function OrganizerDashboardScreen() {
               <div><label className="block text-xs uppercase tracking-wider text-gray-500 mb-1">Track {activeTrack} end</label><input type="datetime-local" value={scheduleEnd} onChange={(e) => setScheduleEnd(e.target.value)} className="bg-[#1a1a1a] border border-gray-700 rounded px-3 py-2 text-sm text-white" /></div>
               <button onClick={handleScheduleSave} disabled={busy !== null} className="bg-gold text-black px-4 py-2 rounded text-sm font-semibold disabled:opacity-50">Save Timing</button>
             </div>
-            <p className="text-xs text-gray-600 mt-2">Verification is enforced server-side against the global master switch and this track's schedule.</p>
+            <p className="text-xs text-gray-600 mt-2">Master Start launches every track immediately. Track controls and schedules can still be used for individual track control afterward.</p>
           </div>
         )}
 
