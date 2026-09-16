@@ -127,6 +127,12 @@ export function subscribeToHuntState(callback: (started: boolean, startedAt?: nu
   return () => { active = false; void supabase.removeChannel(channel); };
 }
 
+export function subscribeToTrackHuntState(trackId: string, callback: () => void) {
+  if (!trackId) return () => undefined;
+  const channel = supabase.channel(`track_hunt_state:${trackId}`).on('postgres_changes', { event: '*', schema: 'public', table: 'track_hunt_state', filter: `track_id=eq.${trackId}` }, () => callback()).subscribe();
+  return () => { void supabase.removeChannel(channel); };
+}
+
 export function subscribeToTeamProgress(realtimeKey: string, callback: (progress: any) => void) {
   if (!realtimeKey) return () => undefined;
   const channel = supabase.channel(`team:${realtimeKey}`).on('broadcast', { event: 'team_progress' }, payload => callback(payload.payload)).subscribe();
