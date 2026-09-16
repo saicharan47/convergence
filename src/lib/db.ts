@@ -135,20 +135,14 @@ export function subscribeToTeamProgress(realtimeKey: string, callback: (progress
 }
 
 export function subscribeToAllTeams(callback: (teams: TeamData[]) => void) {
-  let channel: ReturnType<typeof supabase.channel> | null = null;
-  let currentProgress: any[] = [];
-  let teamsData: any[] = [];
-  let tracksMap: Record<string, string> = {};
   let active = true;
-  const assembleTeams = () => teamsData.map(t => { const p = currentProgress.find(pr => pr.team_id === t.id); return { id: t.id, name: t.name, track: tracksMap[t.track_id] || t.track_id, secretCode: '', unlockedClueIndex: p ? p.current_clue : 1, checkpoints: [], createdAt: new Date(t.created_at || Date.now()).getTime(), startedAt: p?.start_time ? new Date(p.start_time).getTime() : undefined, finishedAt: p?.finish_time ? new Date(p.finish_time).getTime() : undefined, disqualified: p?.disqualified || false }; });
-  (async () => {
-    const [{ data: tData, error: tError }, { data: pData, error: pError }, { data: trData, error: trError }] = await Promise.all([supabase.from('teams').select('id, name, track_id, created_at'), supabase.from('team_progress').select('*'), supabase.from('tracks').select('id, name')]);
-    if (!active) return;
-    if (tError || pError || trError) console.error('Organizer overview load error:', tError || pError || trError);
-    teamsData = tData || []; currentProgress = pData || []; tracksMap = (trData || []).reduce((acc: Record<string, string>, t: any) => { acc[t.id] = t.name; return acc; }, {}); callback(assembleTeams());
-    channel = supabase.channel('all_team_progress').on('postgres_changes', { event: '*', schema: 'public', table: 'team_progress' }, payload => { const next = payload.new as any; currentProgress = currentProgress.some(p => p.team_id === next.team_id) ? currentProgress.map(p => p.team_id === next.team_id ? next : p) : [...currentProgress, next]; callback(assembleTeams()); }).subscribe();
-  })();
-  return () => { active = false; if (channel) void supabase.removeChannel(channel); };
+  const refresh = async () => {
+    const teams = await getOrganizerOverview();
+    if (active) callback(teams);
+  };
+  void refresh();
+  const interval = window.setInterval(() => { void refresh(); }, 5000);
+  return () => { active = false; window.clearInterval(interval); };
 }
 
 export async function setGlobalHuntStatus(started: boolean) { const { error } = await supabase.rpc('set_global_hunt_status', { p_started: started }); if (error) throw error; }
