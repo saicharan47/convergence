@@ -10,14 +10,6 @@ export interface TrackSchedule { enabled: boolean; starts_at: string | null; end
 export interface TeamState { team_id: string; name: string; track_id: string; realtime_key: string; progress: { team_id: string; current_clue: number; start_time: string | null; finish_time: string | null; hunt_started: boolean; disqualified: boolean } | null; track_schedule?: TrackSchedule; }
 export interface OrganizerProfile { user_id: string; track_id: string | null; }
 
-export async function joinRoom(roomCode: string): Promise<RoomData | null> {
-  const normalized = roomCode.trim();
-  if (!/^\d{5}$/.test(normalized)) return null;
-  const { data, error } = await supabase.rpc('join_room', { p_code: normalized });
-  if (error || !data) { console.error('Join room error:', error); return null; }
-  return { id: data.id, code: data.code, isActive: Boolean(data.isActive), isHuntStarted: Boolean(data.isHuntStarted), tracks: Array.isArray(data.tracks) ? data.tracks : [] };
-}
-
 export async function authenticateTeam(teamName: string, password: string): Promise<{ token: string; realtime_key: string; team_id: string; name: string; track_id: string } | null> {
   const { data, error } = await supabase.rpc('login_team', { p_team_name: teamName.trim(), p_password: password });
   if (error || !data) { console.error('Team login error:', error); return null; }
@@ -34,16 +26,19 @@ export async function getTeamState(token: string): Promise<TeamState | null> {
 export async function authenticateOrganizer(email: string, password: string): Promise<boolean> {
   const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
   if (error || !data.user) { console.error('Organizer login error:', error); return false; }
-  const { data: organizer, error: organizerError } = await supabase.from('organizers').select('user_id').eq('user_id', data.user.id).maybeSingle();
-  if (organizerError || !organizer) { await supabase.auth.signOut(); return false; }
+  const { data: organizer, error: organizerError } = await supabase.rpc('get_organizer_profile');
+  if (organizerError || !organizer || organizer.user_id !== data.user.id) {
+    await supabase.auth.signOut();
+    return false;
+  }
   return true;
 }
 
 export async function isOrganizerAuthenticated(): Promise<boolean> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
-  const { data, error } = await supabase.from('organizers').select('user_id').eq('user_id', user.id).maybeSingle();
-  return !error && Boolean(data);
+  const { data, error } = await supabase.rpc('get_organizer_profile');
+  return !error && Boolean(data) && data.user_id === user.id;
 }
 
 export async function getOrganizerProfile(): Promise<OrganizerProfile | null> {
