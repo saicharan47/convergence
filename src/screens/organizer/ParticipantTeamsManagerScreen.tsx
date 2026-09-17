@@ -1,4 +1,5 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { Download, Edit3, Plus, RefreshCw, Save, Trash2, Upload, Users, X } from 'lucide-react';
 import { OrganizerLayout } from '../../layouts/OrganizerLayout';
 import { deleteOrganizerTeam, getOrganizerProfile, getOrganizerTeamMembers, getOrganizerTeams, importOrganizerTeams, upsertOrganizerTeam, type OrganizerProfile, type OrganizerTeam } from '../../lib/db';
