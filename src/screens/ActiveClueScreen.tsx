@@ -5,13 +5,13 @@ import { ParchmentCard } from '../components/ParchmentCard';
 import { CodeInput } from '../components/CodeInput';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { useAppContext } from '../store';
-import { verifyClueCode, getClues, type MockClue } from '../lib/db';
+import { verifyClueCode, getCurrentClue, type MockClue } from '../lib/db';
 import { motion } from 'framer-motion';
 
 export function ActiveClueScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { trackId, sessionToken, progress } = useAppContext();
+  const { sessionToken, progress } = useAppContext();
   const [code, setCode] = useState('');
   const [error, setError] = useState(false);
   const [clue, setClue] = useState<MockClue | null | undefined>(undefined);
@@ -19,8 +19,8 @@ export function ActiveClueScreen() {
   const clueNum = Number.parseInt(id || '', 10);
 
   useEffect(() => {
-    if (!progress || !Number.isInteger(clueNum) || clueNum < 1 || clueNum > 9) {
-      navigate(progress ? '/dashboard' : '/', { replace: true });
+    if (!progress || !Number.isInteger(clueNum) || clueNum < 1 || clueNum > 9 || !sessionToken) {
+      navigate(progress && sessionToken ? '/dashboard' : '/', { replace: true });
       return;
     }
 
@@ -30,13 +30,20 @@ export function ActiveClueScreen() {
     }
 
     let cancelled = false;
-    getClues(trackId || '').then(clues => {
-      if (cancelled) return;
-      const activeClue = clues.find(c => c.clue_number === clueNum);
-      setClue(activeClue || null);
-    });
+    void getCurrentClue(sessionToken)
+      .then(activeClue => {
+        if (cancelled) return;
+        if (!activeClue || activeClue.clue_number !== clueNum) {
+          setClue(null);
+          return;
+        }
+        setClue(activeClue);
+      })
+      .catch(() => {
+        if (!cancelled) setClue(null);
+      });
     return () => { cancelled = true; };
-  }, [clueNum, progress, trackId, navigate]);
+  }, [clueNum, progress, sessionToken, navigate]);
 
   const handleVerify = async () => {
     if (code.length !== 5 || !sessionToken || isVerifying) return;
