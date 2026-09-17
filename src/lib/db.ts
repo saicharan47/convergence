@@ -56,10 +56,18 @@ export async function verifyClueCode(token: string, enteredCode: string): Promis
   return data as { ok: boolean; next_clue?: number; reason?: string };
 }
 
+/** Organizer-only clue listing. Participants must use getCurrentClue with their session token. */
 export async function getClues(trackId: string): Promise<MockClue[]> {
   const { data, error } = await supabase.from('clues').select('id, track_id, clue_number, title, question, instruction, sticker_image_url, clue_image_url').eq('track_id', trackId).order('clue_number', { ascending: true });
   if (error) { console.error('Fetch clues error:', error); return []; }
   return (data || []) as MockClue[];
+}
+
+export async function getCurrentClue(token: string): Promise<MockClue | null> {
+  if (!token) return null;
+  const { data, error } = await supabase.rpc('get_team_current_clue', { p_token: token });
+  if (error) throw error;
+  return data ? data as MockClue : null;
 }
 
 export async function getTeamProgress(teamId: string) {
@@ -118,7 +126,7 @@ export async function updateClue(trackId: string, clueIndex: number, updates: Pa
 
 export function subscribeToHuntState(callback: (started: boolean, startedAt?: number) => void) {
   let active = true;
-  void getHuntState().then(state => { if (!active || !state) return; callback(state.started, state.started_at ? new Date(state.started_at).getTime() : undefined); });
+  void getHuntState().then(state => { if (!active || !state) return; callback(state.started, state.started_at ? new Date(state.started_at).getTime() : undefined); }).catch(() => undefined);
   const channel = supabase.channel('hunt_state_changes').on('postgres_changes', { event: '*', schema: 'public', table: 'hunt_state', filter: 'id=eq.1' }, payload => { const state = payload.new as { started: boolean; started_at: string | null }; callback(state.started, state.started_at ? new Date(state.started_at).getTime() : undefined); }).subscribe();
   return () => { active = false; void supabase.removeChannel(channel); };
 }
@@ -129,9 +137,9 @@ export function subscribeToTrackHuntState(trackId: string, callback: () => void)
   return () => { void supabase.removeChannel(channel); };
 }
 
-export function subscribeToTeamProgress(realtimeKey: string, callback: (progress: any) => void) {
+export function subscribeToTeamProgress(realtimeKey: string, callback: () => void) {
   if (!realtimeKey) return () => undefined;
-  const channel = supabase.channel(`team:${realtimeKey}`).on('broadcast', { event: 'team_progress' }, payload => callback(payload.payload)).subscribe();
+  const channel = supabase.channel(`team:${realtimeKey}`).on('broadcast', { event: 'team_progress' }, () => callback()).subscribe();
   return () => { void supabase.removeChannel(channel); };
 }
 
