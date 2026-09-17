@@ -12,7 +12,9 @@ export interface OrganizerProfile { user_id: string; track_id: string | null; }
 
 export async function authenticateTeam(teamName: string, password: string): Promise<{ token: string; realtime_key: string; team_id: string; name: string; track_id: string } | null> {
   const { data, error } = await supabase.rpc('login_team', { p_team_name: teamName.trim(), p_password: password });
-  if (error || !data) { console.error('Team login error:', error); return null; }
+  // Invalid credentials are an expected user-facing outcome; don't pollute the
+  // browser console with a handled authentication error.
+  if (error || !data) return null;
   return data;
 }
 
@@ -26,7 +28,9 @@ export async function getTeamState(token: string): Promise<TeamState | null> {
 
 export async function authenticateOrganizer(email: string, password: string): Promise<boolean> {
   const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-  if (error || !data.user) { console.error('Organizer login error:', error); return false; }
+  // Invalid credentials are handled by the login screen; avoid expected auth
+  // failures becoming noisy console errors.
+  if (error || !data.user) return false;
   const { data: organizer, error: organizerError } = await supabase.rpc('get_organizer_profile');
   if (organizerError || !organizer || organizer.user_id !== data.user.id) {
     await supabase.auth.signOut();
@@ -52,14 +56,14 @@ export async function logoutOrganizer() { await supabase.auth.signOut(); }
 
 export async function verifyClueCode(token: string, enteredCode: string): Promise<{ ok: boolean; next_clue?: number; reason?: string }> {
   const { data, error } = await supabase.rpc('verify_clue_code', { p_token: token, p_code: enteredCode.trim() });
-  if (error || !data) { console.error('Verify error:', error); return { ok: false }; }
+  if (error || !data) return { ok: false };
   return data as { ok: boolean; next_clue?: number; reason?: string };
 }
 
 /** Organizer-only clue listing. Participants must use getCurrentClue with their session token. */
 export async function getClues(trackId: string): Promise<MockClue[]> {
   const { data, error } = await supabase.from('clues').select('id, track_id, clue_number, title, question, instruction, sticker_image_url, clue_image_url').eq('track_id', trackId).order('clue_number', { ascending: true });
-  if (error) { console.error('Fetch clues error:', error); return []; }
+  if (error) return [];
   return (data || []) as MockClue[];
 }
 
@@ -72,19 +76,19 @@ export async function getCurrentClue(token: string): Promise<MockClue | null> {
 
 export async function getTeamProgress(teamId: string) {
   const { data, error } = await supabase.from('team_progress').select('team_id, current_clue, start_time, finish_time, hunt_started, disqualified').eq('team_id', teamId).single();
-  if (error) { console.error('Fetch progress error:', error); return null; }
+  if (error) return null;
   return data;
 }
 
 export async function getHuntState() {
   const { data, error } = await supabase.from('hunt_state').select('id, started, started_at').eq('id', 1).single();
-  if (error) { console.error('Fetch hunt state error:', error); return null; }
+  if (error) return null;
   return data;
 }
 
 export async function getTrackHuntState(trackId: string): Promise<TrackSchedule | null> {
   const { data, error } = await supabase.rpc('get_track_hunt_state', { p_track_id: trackId });
-  if (error || !data) { console.error('Track timing error:', error); return null; }
+  if (error || !data) return null;
   return data as TrackSchedule;
 }
 
@@ -100,7 +104,7 @@ export async function setTrackSchedule(trackId: string, startsAt: string | null,
 
 export async function getOrganizerOverview(trackId: string | null = null): Promise<TeamData[]> {
   const { data, error } = await supabase.rpc('get_organizer_overview', { p_track_id: trackId });
-  if (error || !data) { console.error('Organizer overview error:', error); return []; }
+  if (error || !data) return [];
   return (data as any[]).map(t => ({ id: t.id, name: t.team, track: t.track_id, secretCode: '', unlockedClueIndex: t.progress, checkpoints: [], createdAt: Date.now(), startedAt: t.started_at ? new Date(t.started_at).getTime() : undefined, finishedAt: t.finished_at ? new Date(t.finished_at).getTime() : undefined, disqualified: Boolean(t.disqualified) }));
 }
 
@@ -160,4 +164,4 @@ export async function manuallyAdvanceClue(teamId: string) { const { error } = aw
 export async function manuallyRewindClue(teamId: string) { const { error } = await supabase.rpc('manually_rewind_clue', { p_team_id: teamId }); if (error) throw error; }
 export async function disqualifyTeam(teamId: string, dq: boolean) { const { error } = await supabase.rpc('disqualify_team', { p_team_id: teamId, p_disqualified: dq }); if (error) throw error; }
 export async function resetTeamProgress(teamId: string) { const { error } = await supabase.rpc('reset_team_progress', { p_team_id: teamId }); if (error) throw error; }
-export function subscribeToLeaderboard(trackId: string, currentTeamId: string | null, callback: (entries: LeaderboardEntry[]) => void) { const fetchLeaderboard = async () => { const { data, error } = await supabase.rpc('get_leaderboard', { p_track_id: trackId }); if (error || !data) { console.error('Leaderboard error:', error); return; } const entries: LeaderboardEntry[] = data.map((row: any, index: number) => { const elapsed = Number(row.elapsed_seconds || 0); const hours = Math.floor(elapsed / 3600); const minutes = Math.floor((elapsed % 3600) / 60); const seconds = elapsed % 60; return { id: row.id, rank: index + 1, team: row.team, progress: Math.min(Number(row.progress || 1), 9), total: 9, elapsedTime: [hours, minutes, seconds].map(v => v.toString().padStart(2, '0')).join(':'), isCurrentTeam: row.id === currentTeamId }; }); callback(entries); }; void fetchLeaderboard(); const interval = window.setInterval(fetchLeaderboard, 5000); return () => window.clearInterval(interval); }
+export function subscribeToLeaderboard(trackId: string, currentTeamId: string | null, callback: (entries: LeaderboardEntry[]) => void) { const fetchLeaderboard = async () => { const { data, error } = await supabase.rpc('get_leaderboard', { p_track_id: trackId }); if (error || !data) return; const entries: LeaderboardEntry[] = data.map((row: any, index: number) => { const elapsed = Number(row.elapsed_seconds || 0); const hours = Math.floor(elapsed / 3600); const minutes = Math.floor((elapsed % 3600) / 60); const seconds = elapsed % 60; return { id: row.id, rank: index + 1, team: row.team, progress: Math.min(Number(row.progress || 1), 9), total: 9, elapsedTime: [hours, minutes, seconds].map(v => v.toString().padStart(2, '0')).join(':'), isCurrentTeam: row.id === currentTeamId }; }); callback(entries); }; void fetchLeaderboard(); const interval = window.setInterval(fetchLeaderboard, 5000); return () => window.clearInterval(interval); }
