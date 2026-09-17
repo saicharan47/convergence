@@ -1,0 +1,10 @@
+revoke execute on function public.get_organizer_teams(text) from public, anon;
+revoke execute on function public.get_organizer_team_members(uuid) from public, anon;
+revoke execute on function public.upsert_organizer_team(uuid,text,text,text,jsonb) from public, anon;
+revoke execute on function public.delete_organizer_team(uuid) from public, anon;
+revoke execute on function public.import_organizer_teams(jsonb) from public, anon;
+grant execute on function public.get_organizer_teams(text) to authenticated;
+grant execute on function public.get_organizer_team_members(uuid) to authenticated;
+grant execute on function public.upsert_organizer_team(uuid,text,text,text,jsonb) to authenticated;
+grant execute on function public.delete_organizer_team(uuid) to authenticated;
+grant execute on function public.import_organizer_teams(jsonb) to authenticated;
