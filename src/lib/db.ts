@@ -12,8 +12,6 @@ export interface OrganizerProfile { user_id: string; track_id: string | null; }
 
 export async function authenticateTeam(teamName: string, password: string): Promise<{ token: string; realtime_key: string; team_id: string; name: string; track_id: string } | null> {
   const { data, error } = await supabase.rpc('login_team', { p_team_name: teamName.trim(), p_password: password });
-  // Invalid credentials are an expected user-facing outcome; don't pollute the
-  // browser console with a handled authentication error.
   if (error || !data) return null;
   return data;
 }
@@ -28,8 +26,6 @@ export async function getTeamState(token: string): Promise<TeamState | null> {
 
 export async function authenticateOrganizer(email: string, password: string): Promise<boolean> {
   const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-  // Invalid credentials are handled by the login screen; avoid expected auth
-  // failures becoming noisy console errors.
   if (error || !data.user) return false;
   const { data: organizer, error: organizerError } = await supabase.rpc('get_organizer_profile');
   if (organizerError || !organizer || organizer.user_id !== data.user.id) {
@@ -40,10 +36,14 @@ export async function authenticateOrganizer(email: string, password: string): Pr
 }
 
 export async function isOrganizerAuthenticated(): Promise<boolean> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return false;
-  const { data, error } = await supabase.rpc('get_organizer_profile');
-  return !error && Boolean(data) && data.user_id === user.id;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+    const { data, error } = await supabase.rpc('get_organizer_profile');
+    return !error && Boolean(data) && data.user_id === user.id;
+  } catch {
+    return false;
+  }
 }
 
 export async function getOrganizerProfile(): Promise<OrganizerProfile | null> {
