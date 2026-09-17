@@ -11,7 +11,7 @@ import { OrganizerLoginScreen } from './screens/organizer/OrganizerLoginScreen';
 import { OrganizerDashboardScreen } from './screens/organizer/OrganizerDashboardScreen';
 import { ClueManagementScreen } from './screens/organizer/ClueManagementScreen';
 import { OrganizerLeaderboardScreen } from './screens/organizer/OrganizerLeaderboardScreen';
-import { ParticipantTeamsScreen } from './screens/organizer/ParticipantTeamsScreen';
+import { ParticipantTeamsManagerScreen } from './screens/organizer/ParticipantTeamsManagerScreen';
 import { OrganizerGuard } from './components/OrganizerGuard';
 import { AnimatePresence } from 'framer-motion';
 import { PageTransition } from './components/PageTransition';
@@ -31,7 +31,7 @@ function AppRoutes() {
         <Route path="/leaderboard" element={<PageTransition><LeaderboardScreen /></PageTransition>} />
         <Route path="/organizer" element={<OrganizerLoginScreen />} />
         <Route path="/organizer/dashboard" element={<OrganizerGuard><OrganizerDashboardScreen /></OrganizerGuard>} />
-        <Route path="/organizer/teams" element={<OrganizerGuard><ParticipantTeamsScreen /></OrganizerGuard>} />
+        <Route path="/organizer/teams" element={<OrganizerGuard><ParticipantTeamsManagerScreen /></OrganizerGuard>} />
         <Route path="/organizer/clues" element={<OrganizerGuard><ClueManagementScreen /></OrganizerGuard>} />
         <Route path="/organizer/leaderboard" element={<OrganizerGuard><OrganizerLeaderboardScreen /></OrganizerGuard>} />
         <Route path="/profile" element={<Navigate to="/dashboard" replace />} />
