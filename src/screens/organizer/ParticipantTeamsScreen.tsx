@@ -1,4 +1,5 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { Download, Edit3, Plus, RefreshCw, Save, Trash2, Upload, Users, X } from 'lucide-react';
 import { OrganizerLayout } from '../../layouts/OrganizerLayout';
 import {
@@ -10,7 +11,6 @@ import {
   upsertOrganizerTeam,
   type OrganizerProfile,
   type OrganizerTeam,
-  type TeamMember,
 } from '../../lib/db';
 
 const TRACKS = ['A', 'B', 'C', 'D', 'TEST'] as const;
