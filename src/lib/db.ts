@@ -19,7 +19,8 @@ export async function authenticateTeam(teamName: string, password: string): Prom
 export async function getTeamState(token: string): Promise<TeamState | null> {
   if (!token) return null;
   const { data, error } = await supabase.rpc('get_team_state', { p_token: token });
-  if (error || !data) { console.error('Get team state error:', error); return null; }
+  if (error) throw error;
+  if (!data) return null;
   return data as TeamState;
 }
 
