@@ -12,14 +12,12 @@ export interface TeamProgress {
 }
 
 interface AppState {
-  roomCode: string | null;
   teamId: string | null;
   teamName: string | null;
   trackId: string | null;
   sessionToken: string | null;
   realtimeKey: string | null;
   progress: TeamProgress | null;
-  setRoomCode: (code: string | null) => void;
   setTeamLogin: (teamId: string, teamName: string, trackId: string, token: string, realtimeKey: string) => void;
   logout: () => void;
 }
@@ -27,7 +25,6 @@ interface AppState {
 const AppContext = createContext<AppState | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [roomCode, setRoomCode] = useState<string | null>(() => localStorage.getItem('roomCode'));
   const [teamId, setTeamId] = useState<string | null>(() => localStorage.getItem('teamId'));
   const [teamName, setTeamName] = useState<string | null>(() => localStorage.getItem('teamName'));
   const [trackId, setTrackId] = useState<string | null>(() => localStorage.getItem('trackId'));
@@ -67,15 +64,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('trackId', state.track_id);
         localStorage.setItem('realtimeKey', state.realtime_key);
         if (!unsubscribe && state.realtime_key) {
-          // Broadcast is only a wake-up signal. Never trust client-supplied progress;
-          // re-fetch the authoritative state through the token-protected RPC.
           unsubscribe = subscribeToTeamProgress(state.realtime_key, () => {
             if (!cancelled) void refresh();
           });
         }
       } catch {
-        // A transient network/Supabase failure should not create an unhandled
-        // promise rejection or wipe an otherwise valid local session.
+        // Transient network/Supabase failures must not invalidate a valid local session.
       }
     };
 
@@ -105,28 +99,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    setRoomCode(null);
     setTeamId(null);
     setTeamName(null);
     setTrackId(null);
     setSessionToken(null);
     setRealtimeKey(null);
     setProgress(null);
-    localStorage.removeItem('roomCode');
     localStorage.removeItem('teamId');
     localStorage.removeItem('teamName');
     localStorage.removeItem('trackId');
     localStorage.removeItem('sessionToken');
     localStorage.removeItem('realtimeKey');
+    localStorage.removeItem('roomCode');
   };
 
-  const handleSetRoomCode = (code: string | null) => {
-    setRoomCode(code);
-    if (code) localStorage.setItem('roomCode', code);
-    else localStorage.removeItem('roomCode');
-  };
-
-  return <AppContext.Provider value={{ roomCode, teamId, teamName, trackId, sessionToken, realtimeKey, progress, setRoomCode: handleSetRoomCode, setTeamLogin, logout }}>{children}</AppContext.Provider>;
+  return <AppContext.Provider value={{ teamId, teamName, trackId, sessionToken, realtimeKey, progress, setTeamLogin, logout }}>{children}</AppContext.Provider>;
 }
 
 export function useAppContext() {
