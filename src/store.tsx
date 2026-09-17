@@ -40,33 +40,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     let refreshInterval: number | undefined;
 
+    const clearSession = () => {
+      setSessionToken(null);
+      setRealtimeKey(null);
+      localStorage.removeItem('sessionToken');
+      localStorage.removeItem('realtimeKey');
+      setProgress(null);
+    };
+
     const refresh = async () => {
-      if (!sessionToken) return;
-      const state = await getTeamState(sessionToken);
-      if (cancelled) return;
-      if (!state) {
-        setSessionToken(null);
-        setRealtimeKey(null);
-        localStorage.removeItem('sessionToken');
-        localStorage.removeItem('realtimeKey');
-        setProgress(null);
-        return;
-      }
-      setTeamId(state.team_id);
-      setTeamName(state.name);
-      setTrackId(state.track_id);
-      setRealtimeKey(state.realtime_key);
-      setProgress(state.progress as TeamProgress | null);
-      localStorage.setItem('teamId', state.team_id);
-      localStorage.setItem('teamName', state.name);
-      localStorage.setItem('trackId', state.track_id);
-      localStorage.setItem('realtimeKey', state.realtime_key);
-      if (!unsubscribe && state.realtime_key) {
-        // Broadcast is only a wake-up signal. Never trust client-supplied progress;
-        // re-fetch the authoritative state through the token-protected RPC.
-        unsubscribe = subscribeToTeamProgress(state.realtime_key, () => {
-          if (!cancelled) void refresh();
-        });
+      if (!sessionToken || cancelled) return;
+      try {
+        const state = await getTeamState(sessionToken);
+        if (cancelled) return;
+        if (!state) {
+          clearSession();
+          return;
+        }
+        setTeamId(state.team_id);
+        setTeamName(state.name);
+        setTrackId(state.track_id);
+        setRealtimeKey(state.realtime_key);
+        setProgress(state.progress as TeamProgress | null);
+        localStorage.setItem('teamId', state.team_id);
+        localStorage.setItem('teamName', state.name);
+        localStorage.setItem('trackId', state.track_id);
+        localStorage.setItem('realtimeKey', state.realtime_key);
+        if (!unsubscribe && state.realtime_key) {
+          // Broadcast is only a wake-up signal. Never trust client-supplied progress;
+          // re-fetch the authoritative state through the token-protected RPC.
+          unsubscribe = subscribeToTeamProgress(state.realtime_key, () => {
+            if (!cancelled) void refresh();
+          });
+        }
+      } catch {
+        // A transient network/Supabase failure should not create an unhandled
+        // promise rejection or wipe an otherwise valid local session.
       }
     };
 
