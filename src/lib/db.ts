@@ -44,7 +44,7 @@ export function subscribeToTrackHuntState(trackId: string, callback: () => void)
 export function subscribeToTeamProgress(realtimeKey: string, callback: () => void) { if (!realtimeKey) return () => undefined; const channel = supabase.channel(`team:${realtimeKey}`).on('broadcast', { event: 'team_progress' }, () => callback()).subscribe(); return () => { void supabase.removeChannel(channel); }; }
 export function subscribeToAllTeams(callback: (teams: TeamData[]) => void) { let active = true; const refresh = async () => { const teams = await getOrganizerOverview(); if (active) callback(teams); }; void refresh(); const interval = window.setInterval(() => { void refresh(); }, 5000); return () => { active = false; window.clearInterval(interval); }; }
 export async function setGlobalHuntStatus(started: boolean) { const { error } = await supabase.rpc('set_global_hunt_status', { p_started: started }); if (error) throw error; }
-export async function resetGlobalHunt() { const { error } = await supabase.rpc('reset_global_hunt'); if (error) throw error; }
+export async function resetGlobalHunt() { const { error } = await supabase.rpc('convergence_admin_reset_game'); if (error) throw error; }
 export async function manuallyAdvanceClue(teamId: string) { const { error } = await supabase.rpc('manually_advance_clue', { p_team_id: teamId }); if (error) throw error; }
 export async function manuallyRewindClue(teamId: string) { const { error } = await supabase.rpc('manually_rewind_clue', { p_team_id: teamId }); if (error) throw error; }
 export async function disqualifyTeam(teamId: string, dq: boolean) { const { error } = await supabase.rpc('disqualify_team', { p_team_id: teamId, p_disqualified: dq }); if (error) throw error; }
