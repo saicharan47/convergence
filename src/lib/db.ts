@@ -94,7 +94,8 @@ export async function getConvergenceState(token: string): Promise<ConvergenceSta
     console.error('[Convergence] state sync failed', error);
     throw error;
   }
-  return (data as ConvergenceState | null) ?? null;
+  if (!data) throw new Error('Convergence session is no longer valid');
+  return data as ConvergenceState;
 }
 export async function verifyConvergenceAction(token: string, action: string, value?: string) {
   const { data, error } = await supabase.rpc('verify_convergence_action', { p_token: token, p_action: action, p_value: value ?? null });
