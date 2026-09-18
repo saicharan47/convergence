@@ -6,7 +6,6 @@ import { DashboardScreen } from './screens/DashboardScreen';
 import { ActiveClueScreen } from './screens/ActiveClueScreen';
 import { SuccessScreen } from './screens/SuccessScreen';
 import { TreasureScreen } from './screens/TreasureScreen';
-import { LeaderboardScreen } from './screens/LeaderboardScreen';
 import { OrganizerLoginScreen } from './screens/organizer/OrganizerLoginScreen';
 import { OrganizerDashboardScreen } from './screens/organizer/OrganizerDashboardScreen';
 import { ClueManagementScreen } from './screens/organizer/ClueManagementScreen';
