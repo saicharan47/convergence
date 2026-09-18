@@ -1,17 +1,118 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
-import { ProgressDots } from '../components/ProgressDots';
-import { ClueGrid } from '../components/ClueGrid';
+import { PrimaryButton } from '../components/PrimaryButton';
 import { useAppContext } from '../store';
+import { recordConvergenceViolation, verifyConvergenceAction } from '../lib/db';
 
-function formatTime(ms: number) {
-  const totalSeconds = Math.floor(ms / 1000); const hours = Math.floor(totalSeconds / 3600); const minutes = Math.floor((totalSeconds % 3600) / 60); const seconds = totalSeconds % 60;
-  return [hours.toString().padStart(2,'0'), minutes.toString().padStart(2,'0'), seconds.toString().padStart(2,'0')].join(':');
+const STEPS = ['HAND_IN','STICKER_1','STICKER_2','ANSWER_2','CHECKPOINT_1_QR','CHECKPOINT_1_CODE','SNIPPET_1','STAGE_4_ASSIGNMENT','RIDDLE_4','STICKER_4','STICKER_5','ANSWER_5','CHECKPOINT_2_QR','CHECKPOINT_2_CODE','SNIPPET_2','STAGE_7','RIDDLE_7','STICKER_7','CLUE_8','CLUE_9','FINAL_RIDDLE','TREASURE_FOUND'];
+
+function label(step:string) {
+  return step.replaceAll('_',' ').replace('ANSWER 2','7-DIGIT ANSWER').replace('ANSWER 5','7-DIGIT ANSWER').replace('CHECKPOINT 1 QR','CHECKPOINT 1').replace('CHECKPOINT 2 QR','CHECKPOINT 2');
 }
+function expectedLength(step:string) {
+  if (step.includes('STICKER') || step.includes('CHECKPOINT_1_CODE') || step.includes('CHECKPOINT_2_CODE') || step==='CLUE_9') return 5;
+  if (step.includes('ANSWER_')) return 7;
+  if (step.includes('SNIPPET')) return 1;
+  return 1;
+}
+
 export function DashboardScreen() {
-  const navigate = useNavigate(); const { teamName, trackId, progress } = useAppContext(); const [elapsed,setElapsed] = useState('00:00:00');
-  useEffect(() => { if (!progress?.hunt_started) navigate('/waiting',{replace:true}); else if (progress.current_clue > 9) navigate('/treasure',{replace:true}); }, [progress,navigate]);
-  useEffect(() => { if (!progress?.start_time) return; const startMs=new Date(progress.start_time).getTime(); const tick=()=>{const endMs=progress.finish_time?new Date(progress.finish_time).getTime():Date.now(); setElapsed(formatTime(Math.max(0,endMs-startMs)));}; tick(); if(!progress.finish_time){const interval=setInterval(tick,1000); return()=>clearInterval(interval);} },[progress?.start_time,progress?.finish_time]);
-  return <AppShell title="THE CONVERGENCE" showMenu><div className="flex flex-col items-center pt-6"><div className="text-center mb-6"><div className="w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden border border-gold/40 shadow-[0_0_20px_rgba(201,162,75,0.2)]"><img src="/images/ship-avatar.jpg" alt="Team Avatar" className="w-full h-full object-cover" /></div><h2 className="font-display text-2xl text-offwhite uppercase tracking-widest mb-1 text-glow">{teamName || 'GUEST CREW'}</h2><div className="flex items-center justify-center gap-4 mt-2"><p className="text-gold text-xs uppercase tracking-[0.2em] opacity-90">Track {trackId || 'A'}</p><div className="w-1 h-1 bg-gold/50 rounded-full"/><p className="text-gold text-xs font-mono tracking-widest opacity-90">{elapsed}</p></div></div><div className="mb-10 w-full max-w-[320px]"><ProgressDots total={9} current={progress ? progress.current_clue-1 : 0}/></div><div className="w-full"><ClueGrid total={9} currentClue={progress ? progress.current_clue : 1}/></div></div></AppShell>;
+  const navigate = useNavigate();
+  const { sessionToken, teamName, trackId, convergenceState } = useAppContext();
+  const [value,setValue]=useState('');
+  const [error,setError]=useState('');
+  const [busy,setBusy]=useState(false);
+  const [localWarning,setLocalWarning]=useState<number|null>(null);
+  const state=convergenceState;
+  const content=state?.content ?? null;
+
+  useEffect(()=>{ if(!sessionToken){ navigate('/',{replace:true}); return;} },[sessionToken,navigate]);
+
+  useEffect(()=>{
+    if(!sessionToken || !state || !state.game_running || state.status==='WAITING') return;
+    const onVisibility=()=>{
+      if(document.visibilityState==='hidden') return;
+      // The browser cannot distinguish a tab switch from OS screen-lock reliably.
+      // Do not auto-eliminate on the client; only surface a warning after an explicit,
+      // short-lived return from a background tab.
+    };
+    document.addEventListener('visibilitychange',onVisibility);
+    return()=>document.removeEventListener('visibilitychange',onVisibility);
+  },[sessionToken,state]);
+
+  const progressIndex=useMemo(()=>{
+    const i=STEPS.indexOf(state?.step ?? 'HAND_IN');
+    return i<0?0:i;
+  },[state?.step]);
+
+  const submit=async(action:string)=>{
+    if(!sessionToken || busy) return;
+    const required=expectedLength(state?.step ?? '');
+    if(action!=='ACK_RIDDLE' && action!=='FINAL_SUBMISSION' && value.trim().length<required){setError(`Enter the required ${required}-digit answer.`);return;}
+    setBusy(true);setError('');
+    try{
+      const result=await verifyConvergenceAction(sessionToken,action,value.trim());
+      if(!result.ok){setError(result.reason==='game_paused'?'The game is currently paused.':result.reason==='treasure_already_found'?'The treasure has already been claimed.':'Incorrect entry. Try again.');return;}
+      setValue('');
+      if(result.status==='WINNER') navigate('/treasure',{replace:true});
+    }catch{setError('Connection error. Your progress is safe. Try again.')}
+    finally{setBusy(false);}
+  };
+
+  const showInput=['STICKER_1','STICKER_2','ANSWER_2','CHECKPOINT_1_QR','CHECKPOINT_1_CODE','SNIPPET_1','STICKER_4','STICKER_5','ANSWER_5','CHECKPOINT_2_QR','CHECKPOINT_2_CODE','SNIPPET_2','STICKER_7','CLUE_9'].includes(state?.step ?? '');
+  const action=state?.step?.includes('ANSWER')?'ANSWER':state?.step?.includes('STICKER')?'STICKER_CODE':state?.step?.includes('CHECKPOINT_')?'CHECKPOINT_'+(state.step.endsWith('_QR')?'QR':'CODE'):state?.step?.includes('SNIPPET')?'SNIPPET':state?.step==='CLUE_9'?'CLUE9_CODE':'';
+
+  if(!state) return <AppShell title="THE CONVERGENCE"><div className="flex-1 flex items-center justify-center text-muted">Loading your route…</div></AppShell>;
+
+  if(state.status==='ELIMINATED') return <AppShell title="THE CONVERGENCE"><div className="flex-1 flex flex-col items-center justify-center text-center"><div className="text-6xl mb-5">⚫</div><h2 className="font-display text-3xl text-red-300 uppercase tracking-widest">Eliminated</h2><p className="text-muted mt-3 max-w-sm">Your team is no longer eligible to continue.</p></div></AppShell>;
+  if(state.status==='WINNER') return <AppShell title="THE CONVERGENCE"><div className="flex-1 flex flex-col items-center justify-center text-center"><div className="text-6xl mb-5">🏆</div><h2 className="font-display text-3xl text-gold uppercase tracking-widest">Treasure Found</h2><p className="text-offwhite mt-3">{teamName}</p></div></AppShell>;
+
+  return <AppShell title="THE CONVERGENCE" showMenu>
+    <div className="flex-1 py-3">
+      <div className="text-center mb-6">
+        <p className="text-[10px] text-gold uppercase tracking-[.35em]">Track {trackId}</p>
+        <h2 className="font-display text-2xl text-offwhite uppercase tracking-widest mt-1">{teamName}</h2>
+      </div>
+
+      <div className="rounded-2xl border border-gold/20 bg-black/30 p-4 mb-5">
+        <div className="flex items-center justify-between text-[10px] uppercase tracking-[.25em] text-muted"><span>Current stage</span><span>{state.stage}/10</span></div>
+        <h3 className="font-display text-xl text-gold uppercase tracking-wider mt-2">{label(state.step)}</h3>
+        <div className="flex gap-1 mt-4">{Array.from({length:10}).map((_,i)=><div key={i} className={`h-1 flex-1 rounded ${i<Math.min(state.stage,10)?'bg-gold':'bg-white/10'}`}/>)}</div>
+      </div>
+
+      {!state.game_running || state.status==='PAUSED' || state.step==='STAGE_4_ASSIGNMENT' || state.step==='STAGE_7' ? (
+        <div className="rounded-2xl border border-white/10 bg-black/30 p-6 text-center">
+          <div className="text-4xl mb-3">⏸</div><h3 className="font-display text-xl text-offwhite uppercase tracking-widest">{state.status==='WAITING'?'Awaiting Orders':'Game Paused'}</h3>
+          <p className="text-sm text-muted mt-2">{state.status==='WAITING'?'The admin has not started the hunt yet. This page will update automatically.':'Hold position. The organizer will resume the next stage when the route is ready.'}</p>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {content?.sticker_image_url && <div className="mx-auto w-40 h-40 rounded-2xl overflow-hidden border border-gold/30 bg-black/50"><img src={content.sticker_image_url} alt="Mission sticker" className="w-full h-full object-contain"/></div>}
+          {content?.physical_location && <div className="rounded-xl border border-gold/15 bg-gold/5 p-3 text-sm text-offwhite/80"><span className="text-[10px] uppercase tracking-widest text-gold block mb-1">Physical location</span>{content.physical_location}</div>}
+          {content?.title && <h3 className="font-display text-2xl text-offwhite uppercase tracking-wider">{content.title}</h3>}
+          {content?.body && <div className="rounded-2xl border border-white/10 bg-black/35 p-5 text-offwhite/90 leading-relaxed whitespace-pre-wrap">{content.body}</div>}
+          {content?.instruction && <p className="text-xs uppercase tracking-wider text-muted">{content.instruction}</p>}
+
+          {state.step==='HAND_IN' && <PrimaryButton onClick={()=>void submit('ACK_RIDDLE')}>I Reached Clue 1 →</PrimaryButton>}
+          {state.step==='RIDDLE_4' && <PrimaryButton onClick={()=>void submit('ACK_RIDDLE')}>I Reached Clue 4 →</PrimaryButton>}
+          {state.step==='RIDDLE_7' && <PrimaryButton onClick={()=>void submit('ACK_RIDDLE')}>I Reached Clue 7 →</PrimaryButton>}
+          {state.step==='CLUE_8' && <div className="rounded-xl border border-gold/20 p-4 text-center text-sm text-muted">Solve the paired clue and find the person holding Clue 9.</div>}
+          {state.step==='FINAL_RIDDLE' && <PrimaryButton variant="parchment" disabled={busy} onClick={()=>void submit('FINAL_SUBMISSION')}>{busy?'Locking…':'I Found The Treasure →'}</PrimaryButton>}
+
+          {showInput && <div className="rounded-2xl border border-white/10 bg-black/30 p-5">
+            <label className="block text-[10px] uppercase tracking-[.25em] text-gold mb-3">
+              {state.step.includes('QR')?'Track QR token / scan result':state.step.includes('CHECKPOINT')?'Enter checkpoint code':state.step.includes('SNIPPET')?'Submit code snippet answer':state.step==='CLUE_9'?'Enter Clue 9 physical code':state.step.includes('ANSWER')?'Enter 7-digit answer':'Enter the physical sticker code'}
+            </label>
+            <input value={value} onChange={e=>{setValue(e.target.value.slice(0, state.step.includes('ANSWER')?7:32));setError('')}} inputMode={state.step.includes('ANSWER')||state.step.includes('STICKER')||state.step.includes('CHECKPOINT')?'numeric':'text'} className="w-full bg-void border border-gold/25 rounded-xl px-4 py-4 text-center text-xl tracking-[.25em] text-offwhite outline-none focus:border-gold" placeholder={state.step.includes('ANSWER')?'7-DIGIT ANSWER':'ENTER CODE'} autoComplete="off"/>
+            <div className="mt-4"><PrimaryButton disabled={busy || !value.trim()} onClick={()=>void submit(action)}>{busy?'Verifying…':'Submit'}</PrimaryButton></div>
+          </div>}
+          {error && <p className="text-center text-red-400 text-sm">{error}</p>}
+        </div>
+      )}
+
+      {localWarning && <div className="mt-4 text-center text-amber-300 text-xs">Warning {localWarning}/2</div>}
+      <div className="mt-8 text-center text-[9px] uppercase tracking-[.3em] text-muted/60">Progress is server-synced. Refreshing will not reset your route.</div>
+    </div>
+  </AppShell>;
 }
