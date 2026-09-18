@@ -91,7 +91,7 @@ export async function getConvergenceState(token: string): Promise<ConvergenceSta
   if (!token) return null;
   const { data, error } = await supabase.rpc('convergence_client_state', { p_token: token });
   if (error) {
-    console.error('[Convergence] state sync failed', error);
+    console.warn('[Convergence] state sync failed');
     throw error;
   }
   if (!data) throw new Error('Convergence session is no longer valid');
@@ -123,7 +123,7 @@ export async function getConvergenceAudit(teamId: string | null = null) {
 }
 export async function adminUpsertRouteItem(input: {teamId:string;stepKey:string;title:string;body:string;instruction:string;stickerImageUrl?:string;clueImageUrl?:string;physicalLocation?:string;code?:string;answer?:string;metadata?:Record<string,unknown>}) {
   const { error } = await supabase.rpc('convergence_admin_upsert_route_item', {
-    p_team_id: input.teamId,p_step_key:input.stepKey,p_title:input.title,p_body:input.body,p_instruction:input.instruction,
+    p_team_id:input.teamId,p_step_key:input.stepKey,p_title:input.title,p_body:input.body,p_instruction:input.instruction,
     p_sticker_image_url:input.stickerImageUrl ?? null,p_clue_image_url:input.clueImageUrl ?? null,p_physical_location:input.physicalLocation ?? null,
     p_code:input.code ?? null,p_answer:input.answer ?? null,p_metadata:input.metadata ?? {}
   });
