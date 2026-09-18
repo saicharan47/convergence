@@ -19,7 +19,7 @@ function expectedLength(step:string) {
 
 export function DashboardScreen() {
   const navigate = useNavigate();
-  const { sessionToken, teamName, trackId, convergenceState } = useAppContext();
+  const { sessionToken, teamName, trackId, convergenceState, convergenceLoadError } = useAppContext();
   const [value,setValue]=useState('');
   const [error,setError]=useState('');
   const [busy,setBusy]=useState(false);
@@ -60,7 +60,7 @@ export function DashboardScreen() {
   const showInput=['HAND_IN','STICKER_1','STICKER_2','ANSWER_2','CHECKPOINT_1_QR','CHECKPOINT_1_CODE','SNIPPET_1','STICKER_4','STICKER_5','ANSWER_5','CHECKPOINT_2_QR','CHECKPOINT_2_CODE','SNIPPET_2','STICKER_7','CLUE_9'].includes(state?.step ?? '');
   const action=state?.step==='HAND_IN'?'STICKER_CODE':state?.step?.includes('ANSWER')?'ANSWER':state?.step?.includes('STICKER')?'STICKER_CODE':state?.step?.includes('CHECKPOINT_')?'CHECKPOINT_'+(state.step.endsWith('_QR')?'QR':'CODE'):state?.step?.includes('SNIPPET')?'SNIPPET':state?.step==='CLUE_9'?'CLUE9_CODE':'';
 
-  if(!state) return <AppShell title="THE CONVERGENCE"><div className="flex-1 flex items-center justify-center text-muted">Loading your route…</div></AppShell>;
+  if(!state) return <AppShell title="THE CONVERGENCE"><div className="flex-1 flex flex-col items-center justify-center text-center px-6"><div className="text-4xl mb-4">◌</div><h2 className="font-display text-xl text-offwhite uppercase tracking-widest">{convergenceLoadError ? 'Syncing route' : 'Loading your route…'}</h2><p className="text-sm text-muted mt-3 max-w-sm">{convergenceLoadError ?? 'Connecting to the Convergence control server.'}</p><p className="text-[10px] uppercase tracking-[.25em] text-muted/60 mt-5">Please keep this page open. It will retry automatically.</p></div></AppShell>;
 
   if(state.status==='ELIMINATED') return <AppShell title="THE CONVERGENCE"><div className="flex-1 flex flex-col items-center justify-center text-center"><div className="text-6xl mb-5">⚫</div><h2 className="font-display text-3xl text-red-300 uppercase tracking-widest">Eliminated</h2><p className="text-muted mt-3 max-w-sm">Your team is no longer eligible to continue.</p></div></AppShell>;
   if(state.status==='WINNER') return <AppShell title="THE CONVERGENCE"><div className="flex-1 flex flex-col items-center justify-center text-center"><div className="text-6xl mb-5">🏆</div><h2 className="font-display text-3xl text-gold uppercase tracking-widest">Treasure Found</h2><p className="text-offwhite mt-3">{teamName}</p></div></AppShell>;
