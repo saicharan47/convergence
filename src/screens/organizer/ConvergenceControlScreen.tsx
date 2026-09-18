@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { OrganizerLayout } from '../../layouts/OrganizerLayout';
-import { adminAssignSequence, adminUpsertRouteItem, getConvergenceAdminDashboard, getConvergenceAudit, getConvergenceSequences, setConvergenceGame, upsertConvergenceSequence, type ConvergenceSequence } from '../../lib/db';
+import { adminAssignSequence, adminUpsertRouteItem, getAdminRouteItem, getConvergenceAdminDashboard, getConvergenceAudit, getConvergenceSequences, setConvergenceGame, upsertConvergenceSequence, type ConvergenceSequence } from '../../lib/db';
 
 type TeamRow={id:string;name:string;track_id:string;status:string;stage:number;step:string;warnings:number;stage3_rank:number|null;stage6_rank:number|null;clue9_rank:number|null;started_at:string|null;last_action_at:string|null};
 const STEPS=['HAND_IN','STICKER_1','STICKER_2','ANSWER_2','RIDDLE_4','STICKER_4','STICKER_5','ANSWER_5','RIDDLE_7','STICKER_7','CLUE_8','CLUE_9'];
@@ -16,6 +16,7 @@ export function ConvergenceControlScreen(){
 
  const load=async()=>{try{const d=await getConvergenceAdminDashboard();setStage(d.game.current_stage);setRunning(d.game.running);setTeams(d.teams as TeamRow[]);setSequences(await getConvergenceSequences());}catch(e){setMessage(e instanceof Error?e.message:'Unable to load control data.')}};
  useEffect(()=>{void load();const i=window.setInterval(()=>void load(),3000);return()=>window.clearInterval(i)},[]);
+ useEffect(()=>{if(!selectedTeam)return;void getAdminRouteItem(selectedTeam.id,routeStep).then(r=>{if(!r)return;setRoute(v=>({...v,title:String(r.title??''),body:String(r.body??''),instruction:String(r.instruction??''),physicalLocation:String(r.physical_location??''),stickerImageUrl:String(r.sticker_image_url??''),clueImageUrl:String(r.clue_image_url??''),code:'',answer:''}))}).catch(()=>undefined)},[selectedTeam,routeStep]);
  const counts=useMemo(()=>teams.reduce((a,t)=>(a[t.status]=(a[t.status]||0)+1,a),{} as Record<string,number>),[teams]);
  const control=async(nextStage:number,nextRunning:boolean)=>{setBusy(true);setMessage('');try{await setConvergenceGame(nextStage,nextRunning);await load();setMessage(nextRunning?'Stage '+nextStage+' resumed.':'Game paused.')}catch(e){setMessage(e instanceof Error?e.message:'Control action failed.')}finally{setBusy(false)}};
  const assign=async(teamId:string,seqId:string)=>{setBusy(true);try{await adminAssignSequence(teamId,seqId);await load();setMessage('Sequence assigned. The team remains paused until resume.')}catch(e){setMessage(e instanceof Error?e.message:'Assignment failed.')}finally{setBusy(false)}};
