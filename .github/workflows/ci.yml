@@ -50,3 +50,7 @@ jobs:
             test -s /tmp/convergence-route.html
             grep -qi '<!doctype html' /tmp/convergence-route.html
           done
+          if grep -Eqi '(^|[^a-z])(error|fatal|uncaught)([^a-z]|$)' /tmp/convergence-vite.log; then
+            cat /tmp/convergence-vite.log
+            exit 1
+          fi
