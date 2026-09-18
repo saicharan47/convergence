@@ -1,10 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { HomeScreen } from './screens/HomeScreen';
 import { TeamSelectionScreen } from './screens/TeamSelectionScreen';
-import { WaitingScreen } from './screens/WaitingScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
-import { ActiveClueScreen } from './screens/ActiveClueScreen';
-import { SuccessScreen } from './screens/SuccessScreen';
 import { TreasureScreen } from './screens/TreasureScreen';
 import { OrganizerLoginScreen } from './screens/organizer/OrganizerLoginScreen';
 import { OrganizerDashboardScreen } from './screens/organizer/OrganizerDashboardScreen';
@@ -23,10 +20,7 @@ function AppRoutes() {
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<PageTransition><HomeScreen /></PageTransition>} />
         <Route path="/team" element={<PageTransition><TeamSelectionScreen /></PageTransition>} />
-        <Route path="/waiting" element={<PageTransition><WaitingScreen /></PageTransition>} />
         <Route path="/dashboard" element={<PageTransition><DashboardScreen /></PageTransition>} />
-        <Route path="/clue/:id" element={<PageTransition><ActiveClueScreen /></PageTransition>} />
-        <Route path="/clue/:id/success" element={<PageTransition><SuccessScreen /></PageTransition>} />
         <Route path="/treasure" element={<PageTransition><TreasureScreen /></PageTransition>} />
         <Route path="/leaderboard" element={<Navigate to="/dashboard" replace />} />
         <Route path="/organizer" element={<OrganizerLoginScreen />} />
