@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { getTeamState, subscribeToTeamProgress } from './lib/db';
+import { getTeamState, getConvergenceState, subscribeToTeamProgress } from './lib/db';
+import type { ConvergenceState } from './lib/db';
 
 export interface TeamProgress {
   team_id: string;
@@ -18,6 +19,7 @@ interface AppState {
   sessionToken: string | null;
   realtimeKey: string | null;
   progress: TeamProgress | null;
+  convergenceState: ConvergenceState | null;
   setTeamLogin: (teamId: string, teamName: string, trackId: string, token: string, realtimeKey: string) => void;
   logout: () => void;
 }
@@ -31,6 +33,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [sessionToken, setSessionToken] = useState<string | null>(() => localStorage.getItem('sessionToken'));
   const [realtimeKey, setRealtimeKey] = useState<string | null>(() => localStorage.getItem('realtimeKey'));
   const [progress, setProgress] = useState<TeamProgress | null>(null);
+  const [convergenceState, setConvergenceState] = useState<ConvergenceState | null>(null);
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
@@ -43,6 +46,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('sessionToken');
       localStorage.removeItem('realtimeKey');
       setProgress(null);
+      setConvergenceState(null);
     };
 
     const refresh = async () => {
@@ -59,6 +63,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setTrackId(state.track_id);
         setRealtimeKey(state.realtime_key);
         setProgress(state.progress as TeamProgress | null);
+        try { setConvergenceState(await getConvergenceState(sessionToken)); } catch { /* retain last known convergence state */ }
         localStorage.setItem('teamId', state.team_id);
         localStorage.setItem('teamName', state.name);
         localStorage.setItem('trackId', state.track_id);
@@ -105,6 +110,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSessionToken(null);
     setRealtimeKey(null);
     setProgress(null);
+    setConvergenceState(null);
     localStorage.removeItem('teamId');
     localStorage.removeItem('teamName');
     localStorage.removeItem('trackId');
@@ -113,7 +119,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('roomCode');
   };
 
-  return <AppContext.Provider value={{ teamId, teamName, trackId, sessionToken, realtimeKey, progress, setTeamLogin, logout }}>{children}</AppContext.Provider>;
+  return <AppContext.Provider value={{ teamId, teamName, trackId, sessionToken, realtimeKey, progress, convergenceState, setTeamLogin, logout }}>{children}</AppContext.Provider>;
 }
 
 export function useAppContext() {
