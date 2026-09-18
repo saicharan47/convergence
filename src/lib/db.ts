@@ -133,3 +133,8 @@ export async function adminAssignSequence(teamId:string,sequenceId:string) {
   const { error } = await supabase.rpc('convergence_admin_assign_sequence',{p_team_id:teamId,p_sequence_id:sequenceId});
   if (error) throw error;
 }
+
+export interface ConvergenceSequence { id:string; name:string; payload:Record<string,unknown>; assigned_team_id:string|null; }
+export async function getConvergenceSequences():Promise<ConvergenceSequence[]> { const {data,error}=await supabase.rpc('convergence_admin_list_sequences'); if(error||!data)return []; return data as ConvergenceSequence[]; }
+export async function upsertConvergenceSequence(id:string|null,name:string,payload:Record<string,unknown>):Promise<string>{ const {data,error}=await supabase.rpc('convergence_admin_upsert_sequence',{p_id:id,p_name:name,p_payload:payload}); if(error)throw error; return data as string; }
+export async function adminUpsertPair(input:{teamId:string;pairKey:string;logicalClue:string;stickerImageUrl?:string;physicalLocation?:string;clue9Location?:string}){ const {error}=await supabase.rpc('convergence_admin_upsert_pair',{p_team_id:input.teamId,p_pair_key:input.pairKey,p_logical_clue:input.logicalClue,p_sticker_image_url:input.stickerImageUrl??null,p_physical_location:input.physicalLocation??null,p_clue9_location:input.clue9Location??null}); if(error)throw error; }
