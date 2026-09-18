@@ -50,3 +50,86 @@ export async function manuallyRewindClue(teamId: string) { const { error } = awa
 export async function disqualifyTeam(teamId: string, dq: boolean) { const { error } = await supabase.rpc('disqualify_team', { p_team_id: teamId, p_disqualified: dq }); if (error) throw error; }
 export async function resetTeamProgress(teamId: string) { const { error } = await supabase.rpc('reset_team_progress', { p_team_id: teamId }); if (error) throw error; }
 export function subscribeToLeaderboard(trackId: string, currentTeamId: string | null, callback: (entries: LeaderboardEntry[]) => void) { const fetchLeaderboard = async () => { const { data, error } = await supabase.rpc('get_leaderboard', { p_track_id: trackId }); if (error || !data) return; const entries: LeaderboardEntry[] = (data as LeaderboardRow[]).map((row, index) => { const elapsed = Number(row.elapsed_seconds || 0); const hours = Math.floor(elapsed / 3600); const minutes = Math.floor((elapsed % 3600) / 60); const seconds = elapsed % 60; return { id: row.id, rank: index + 1, team: row.team, progress: Math.min(Number(row.progress || 1), 9), total: 9, elapsedTime: [hours, minutes, seconds].map(v => v.toString().padStart(2, '0')).join(':'), isCurrentTeam: row.id === currentTeamId }; }); callback(entries); }; void fetchLeaderboard(); const interval = window.setInterval(fetchLeaderboard, 5000); return () => window.clearInterval(interval); }
+
+
+export interface ConvergenceContent {
+  step: string;
+  title?: string;
+  body?: string;
+  instruction?: string;
+  sticker_image_url?: string | null;
+  clue_image_url?: string | null;
+  physical_location?: string | null;
+  metadata?: Record<string, unknown>;
+  pair_key?: string;
+}
+export interface ConvergenceState {
+  team_id: string;
+  name: string;
+  track_id: string;
+  status: 'WAITING'|'ACTIVE'|'PAUSED'|'PROMOTED'|'ELIMINATED'|'FINALIST'|'WINNER';
+  stage: number;
+  step: string;
+  warnings: number;
+  game_running: boolean;
+  stage_started_at?: string | null;
+  started_at?: string | null;
+  paused_at?: string | null;
+  content?: ConvergenceContent | null;
+}
+export async function listTrackTeams(trackId: string): Promise<Array<{id:string;name:string}>> {
+  const { data, error } = await supabase.rpc('list_track_teams', { p_track_id: trackId });
+  if (error || !data) return [];
+  return data as Array<{id:string;name:string}>;
+}
+export async function authenticateTeamV2(trackId: string, teamId: string, password: string) {
+  const { data, error } = await supabase.rpc('login_team_v2', { p_track_id: trackId, p_team_id: teamId, p_password: password });
+  if (error || !data) return null;
+  return data as { token:string; realtime_key:string; team_id:string; name:string; track_id:string };
+}
+export async function getConvergenceState(token: string): Promise<ConvergenceState | null> {
+  if (!token) return null;
+  const { data, error } = await supabase.rpc('convergence_safe_state', { p_token: token });
+  if (error) throw error;
+  return (data as ConvergenceState | null) ?? null;
+}
+export async function verifyConvergenceAction(token: string, action: string, value?: string) {
+  const { data, error } = await supabase.rpc('verify_convergence_action', { p_token: token, p_action: action, p_value: value ?? null });
+  if (error) throw error;
+  return data as { ok:boolean; reason?:string; status?:string; next_step?:string; snippet?:string; rank?:number; timestamp?:string };
+}
+export async function recordConvergenceViolation(token: string, eventType: string) {
+  const { data, error } = await supabase.rpc('record_convergence_violation', { p_token: token, p_event_type: eventType, p_metadata: {} });
+  if (error) throw error;
+  return data as { ok:boolean; warning?:number; status?:string };
+}
+export async function setConvergenceGame(stage: number, running: boolean) {
+  const { error } = await supabase.rpc('convergence_admin_set_game', { p_stage: stage, p_running: running });
+  if (error) throw error;
+}
+export async function getConvergenceAdminDashboard(trackId: string | null = null) {
+  const { data, error } = await supabase.rpc('convergence_admin_get_dashboard', { p_track_id: trackId });
+  if (error) throw error;
+  return data as { game: { current_stage:number; running:boolean; stage_started_at:string|null }; teams: Array<Record<string,unknown>> };
+}
+export async function getConvergenceAudit(teamId: string | null = null) {
+  const { data, error } = await supabase.rpc('convergence_admin_get_audit', { p_team_id: teamId });
+  if (error) throw error;
+  return data as Array<{id:number;team_id:string|null;event_type:string;stage:number|null;step_key:string|null;details:Record<string,unknown>;created_at:string}>;
+}
+export async function adminUpsertRouteItem(input: {teamId:string;stepKey:string;title:string;body:string;instruction:string;stickerImageUrl?:string;clueImageUrl?:string;physicalLocation?:string;code?:string;answer?:string;metadata?:Record<string,unknown>}) {
+  const { error } = await supabase.rpc('convergence_admin_upsert_route_item', {
+    p_team_id: input.teamId,p_step_key:input.stepKey,p_title:input.title,p_body:input.body,p_instruction:input.instruction,
+    p_sticker_image_url:input.stickerImageUrl ?? null,p_clue_image_url:input.clueImageUrl ?? null,p_physical_location:input.physicalLocation ?? null,
+    p_code:input.code ?? null,p_answer:input.answer ?? null,p_metadata:input.metadata ?? {}
+  });
+  if (error) throw error;
+}
+export async function adminUpsertCheckpoint(input:{stage:number;trackId:string;qrToken:string;checkpointCode:string;snippet:string;snippetAnswer:string}) {
+  const { error } = await supabase.rpc('convergence_admin_upsert_checkpoint', {p_stage:input.stage,p_track_id:input.trackId,p_qr_token:input.qrToken,p_checkpoint_code:input.checkpointCode,p_snippet:input.snippet,p_snippet_answer:input.snippetAnswer});
+  if (error) throw error;
+}
+export async function adminAssignSequence(teamId:string,sequenceId:string) {
+  const { error } = await supabase.rpc('convergence_admin_assign_sequence',{p_team_id:teamId,p_sequence_id:sequenceId});
+  if (error) throw error;
+}
