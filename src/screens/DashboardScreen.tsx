@@ -57,8 +57,8 @@ export function DashboardScreen() {
 
   useEffect(()=>{const token=new URLSearchParams(window.location.search).get('checkpoint');if(!token||!sessionToken||!state?.step?.endsWith('_QR'))return;void submit('CHECKPOINT_QR',token)},[sessionToken,state?.step]);
 
-  const showInput=['STICKER_1','STICKER_2','ANSWER_2','CHECKPOINT_1_QR','CHECKPOINT_1_CODE','SNIPPET_1','STICKER_4','STICKER_5','ANSWER_5','CHECKPOINT_2_QR','CHECKPOINT_2_CODE','SNIPPET_2','STICKER_7','CLUE_9'].includes(state?.step ?? '');
-  const action=state?.step?.includes('ANSWER')?'ANSWER':state?.step?.includes('STICKER')?'STICKER_CODE':state?.step?.includes('CHECKPOINT_')?'CHECKPOINT_'+(state.step.endsWith('_QR')?'QR':'CODE'):state?.step?.includes('SNIPPET')?'SNIPPET':state?.step==='CLUE_9'?'CLUE9_CODE':'';
+  const showInput=['HAND_IN','STICKER_1','STICKER_2','ANSWER_2','CHECKPOINT_1_QR','CHECKPOINT_1_CODE','SNIPPET_1','STICKER_4','STICKER_5','ANSWER_5','CHECKPOINT_2_QR','CHECKPOINT_2_CODE','SNIPPET_2','STICKER_7','CLUE_9'].includes(state?.step ?? '');
+  const action=state?.step==='HAND_IN'?'STICKER_CODE':state?.step?.includes('ANSWER')?'ANSWER':state?.step?.includes('STICKER')?'STICKER_CODE':state?.step?.includes('CHECKPOINT_')?'CHECKPOINT_'+(state.step.endsWith('_QR')?'QR':'CODE'):state?.step?.includes('SNIPPET')?'SNIPPET':state?.step==='CLUE_9'?'CLUE9_CODE':'';
 
   if(!state) return <AppShell title="THE CONVERGENCE"><div className="flex-1 flex items-center justify-center text-muted">Loading your route…</div></AppShell>;
 
@@ -91,7 +91,6 @@ export function DashboardScreen() {
           {content?.body && <div className="rounded-2xl border border-white/10 bg-black/35 p-5 text-offwhite/90 leading-relaxed whitespace-pre-wrap">{content.body}</div>}
           {content?.instruction && <p className="text-xs uppercase tracking-wider text-muted">{content.instruction}</p>}
 
-          {state.step==='HAND_IN' && <PrimaryButton onClick={()=>void submit('ACK_RIDDLE')}>I Reached Clue 1 →</PrimaryButton>}
           {state.step==='RIDDLE_4' && <PrimaryButton onClick={()=>void submit('ACK_RIDDLE')}>I Reached Clue 4 →</PrimaryButton>}
           {state.step==='RIDDLE_7' && <PrimaryButton onClick={()=>void submit('ACK_RIDDLE')}>I Reached Clue 7 →</PrimaryButton>}
           {state.step==='CLUE_8' && <div className="rounded-xl border border-gold/20 p-4 text-center text-sm text-muted">Solve the paired clue and find the person holding Clue 9.</div>}
@@ -99,7 +98,7 @@ export function DashboardScreen() {
 
           {showInput && <div className="rounded-2xl border border-white/10 bg-black/30 p-5">
             <label className="block text-[10px] uppercase tracking-[.25em] text-gold mb-3">
-              {state.step.includes('QR')?'Track QR token / scan result':state.step.includes('CHECKPOINT')?'Enter checkpoint code':state.step.includes('SNIPPET')?'Submit code snippet answer':state.step==='CLUE_9'?'Enter Clue 9 physical code':state.step.includes('ANSWER')?'Enter 7-digit answer':'Enter the physical sticker code'}
+              {state.step==='HAND_IN'?'Sticker 1 physical code':state.step.includes('QR')?'Track QR token / scan result':state.step.includes('CHECKPOINT')?'Enter checkpoint code':state.step.includes('SNIPPET')?'Submit code snippet answer':state.step==='CLUE_9'?'Enter Clue 9 physical code':state.step.includes('ANSWER')?'Enter 7-digit answer':'Enter the physical sticker code'}
             </label>
             <input value={value} onChange={e=>{setValue(e.target.value.slice(0, state.step.includes('ANSWER')?7:32));setError('')}} inputMode={state.step.includes('ANSWER')||state.step.includes('STICKER')||state.step.includes('CHECKPOINT')?'numeric':'text'} className="w-full bg-void border border-gold/25 rounded-xl px-4 py-4 text-center text-xl tracking-[.25em] text-offwhite outline-none focus:border-gold" placeholder={state.step.includes('ANSWER')?'7-DIGIT ANSWER':'ENTER CODE'} autoComplete="off"/>
             <div className="mt-4"><PrimaryButton disabled={busy || !value.trim()} onClick={()=>void submit(action)}>{busy?'Verifying…':'Submit'}</PrimaryButton></div>
