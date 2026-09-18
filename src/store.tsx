@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { getTeamState, getConvergenceState, subscribeToTeamProgress } from './lib/db';
+import { getConvergenceState } from './lib/db';
 import type { ConvergenceState } from './lib/db';
 
 export interface TeamProgress {
