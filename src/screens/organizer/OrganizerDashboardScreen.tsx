@@ -1,148 +1,180 @@
 import { useEffect, useMemo, useState } from 'react';
 import { OrganizerLayout } from '../../layouts/OrganizerLayout';
-import { LiveOverviewTable } from '../../components/organizer/LiveOverviewTable';
-import {
-  getOrganizerOverview,
-  getOrganizerProfile,
-  getTrackHuntState,
-  resetGlobalHunt,
-  setGlobalHuntStatus,
-  setTrackHuntStatus,
-  setTrackSchedule,
-  type OrganizerProfile,
-  type TeamData,
-  type TrackSchedule,
-} from '../../lib/db';
+import { getConvergenceAdminDashboard, resetGlobalHunt, setConvergenceGame } from '../../lib/db';
 import { Play, RotateCcw, Square } from 'lucide-react';
 
 const TRACKS = ['A', 'B', 'C', 'D'] as const;
 type TrackId = typeof TRACKS[number];
 
-function toInputValue(value: string | null) {
-  if (!value) return '';
-  const date = new Date(value);
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 16);
+interface TeamRow {
+  id: string;
+  name: string;
+  track_id: string;
+  status: string;
+  stage: number;
+  step: string;
+  warnings: number;
+  stage3_rank: number | null;
+  stage6_rank: number | null;
+  clue9_rank: number | null;
+  started_at: string | null;
+  last_action_at: string | null;
+}
+
+interface GameState {
+  current_stage: number;
+  running: boolean;
+  stage_started_at: string | null;
+}
+
+function formatElapsed(startedAt: string | null, finishedAt?: string | null, now = Date.now()) {
+  if (!startedAt) return '--:--:--';
+  const start = new Date(startedAt).getTime();
+  const end = finishedAt ? new Date(finishedAt).getTime() : now;
+  const total = Math.max(0, Math.floor((end - start) / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
+}
+
+function statusLabel(status: string) {
+  return status.replaceAll('_', ' ');
 }
 
 export function OrganizerDashboardScreen() {
-  const [profile, setProfile] = useState<OrganizerProfile | null>(null);
+  const [game, setGame] = useState<GameState>({ current_stage: 1, running: false, stage_started_at: null });
+  const [teams, setTeams] = useState<TeamRow[]>([]);
   const [selectedTrack, setSelectedTrack] = useState<TrackId | 'ALL'>('ALL');
-  const [teams, setTeams] = useState<TeamData[]>([]);
-  const [schedules, setSchedules] = useState<Record<string, TrackSchedule>>({});
+  const [search, setSearch] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
-  const [scheduleStart, setScheduleStart] = useState('');
-  const [scheduleEnd, setScheduleEnd] = useState('');
-
-  const visibleTracks = useMemo(() => {
-    if (profile?.track_id && TRACKS.includes(profile.track_id as TrackId)) return [profile.track_id as TrackId];
-    return [...TRACKS];
-  }, [profile]);
+  const [message, setMessage] = useState('');
+  const [now, setNow] = useState(Date.now());
 
   const load = async () => {
-    const nextProfile = await getOrganizerProfile();
-    setProfile(nextProfile);
-    const allowedTrack = nextProfile?.track_id as TrackId | null | undefined;
-    const track = allowedTrack && TRACKS.includes(allowedTrack) ? allowedTrack : null;
-    if (track && selectedTrack === 'ALL') setSelectedTrack(track);
-    const filter = track || (selectedTrack === 'ALL' ? null : selectedTrack);
-    const [overview, ...stateResults] = await Promise.all([
-      getOrganizerOverview(filter),
-      ...visibleTracks.map((id) => getTrackHuntState(id)),
-    ]);
-    setTeams(overview);
-    const nextSchedules: Record<string, TrackSchedule> = {};
-    visibleTracks.forEach((id, index) => {
-      const state = stateResults[index];
-      if (state) nextSchedules[id] = state;
-    });
-    setSchedules(nextSchedules);
-    const current = nextSchedules[selectedTrack === 'ALL' ? visibleTracks[0] : selectedTrack];
-    if (current) {
-      setScheduleStart(toInputValue(current.starts_at));
-      setScheduleEnd(toInputValue(current.ends_at));
+    try {
+      const data = await getConvergenceAdminDashboard(selectedTrack === 'ALL' ? null : selectedTrack);
+      setGame(data.game);
+      setTeams(data.teams as TeamRow[]);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to sync Convergence control state.');
     }
   };
 
   useEffect(() => {
     void load();
-    const interval = window.setInterval(() => void load(), 5000);
-    return () => window.clearInterval(interval);
+    const refresh = window.setInterval(() => void load(), 3000);
+    const clock = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => {
+      window.clearInterval(refresh);
+      window.clearInterval(clock);
+    };
   }, [selectedTrack]);
 
-  const activeTrack = selectedTrack === 'ALL' ? null : selectedTrack;
-  const displayedTeams = activeTrack ? teams.filter((team) => team.track === activeTrack) : teams;
+  const counts = useMemo(() => teams.reduce<Record<string, number>>((acc, team) => {
+    acc[team.status] = (acc[team.status] ?? 0) + 1;
+    return acc;
+  }, {}), [teams]);
+
+  const visibleTeams = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return teams.filter(team => !q || team.name.toLowerCase().includes(q));
+  }, [teams, search]);
 
   const run = async (key: string, action: () => Promise<void>) => {
     setBusy(key);
-    try { await action(); await load(); } finally { setBusy(null); }
+    setMessage('');
+    try {
+      await action();
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Control action failed.');
+    } finally {
+      setBusy(null);
+    }
   };
 
-  const handleGlobalStart = () => run('global-start', async () => {
-    if (confirm('Start the hunt for ALL tracks and ALL eligible teams now?')) await setGlobalHuntStatus(true);
+  const handleStart = () => run('start', async () => {
+    if (confirm('Start the Convergence hunt for all eligible tracks and teams?')) {
+      await setConvergenceGame(game.current_stage || 1, true);
+    }
   });
 
-  const handleGlobalReset = () => run('global-reset', async () => {
-    const input = prompt('Type RESET to reset all teams and stop the master hunt.');
-    if (input === 'RESET') await resetGlobalHunt();
+  const handleReset = () => run('reset', async () => {
+    if (prompt('Type RESET to reset the Convergence hunt and stop the master control.') === 'RESET') {
+      await resetGlobalHunt();
+    }
   });
-
-  const handleTrackToggle = (track: TrackId) => run(`track-${track}`, async () => {
-    const current = schedules[track];
-    await setTrackHuntStatus(track, !current?.enabled);
-  });
-
-  const handleScheduleSave = () => {
-    if (!activeTrack) return;
-    run(`schedule-${activeTrack}`, async () => {
-      const start = scheduleStart ? new Date(scheduleStart).toISOString() : null;
-      const end = scheduleEnd ? new Date(scheduleEnd).toISOString() : null;
-      await setTrackSchedule(activeTrack, start, end);
-    });
-  };
 
   return (
     <OrganizerLayout title="Live Overview">
       <div className="flex flex-col gap-6 h-full">
         <div className="flex flex-wrap items-center gap-3 shrink-0">
-          <button onClick={handleGlobalStart} disabled={busy !== null} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow transition-colors font-medium text-sm tracking-wide uppercase disabled:opacity-50">
-            <Play className="w-4 h-4" fill="currentColor" /> Master Start
+          <button onClick={handleStart} disabled={busy !== null || game.running} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow transition-colors font-medium text-sm tracking-wide uppercase disabled:opacity-50">
+            <Play className="w-4 h-4" fill="currentColor" /> {game.running ? 'HUNT RUNNING' : 'MASTER START'}
           </button>
-          <button onClick={handleGlobalReset} disabled={busy !== null} className="flex items-center gap-2 bg-transparent border border-red-900 text-red-500 hover:bg-red-900/20 px-4 py-2 rounded transition-colors font-medium text-sm tracking-wide uppercase disabled:opacity-50">
-            <RotateCcw className="w-4 h-4" /> Reset Hunt
+          <button onClick={handleReset} disabled={busy !== null} className="flex items-center gap-2 bg-transparent border border-red-900 text-red-500 hover:bg-red-900/20 px-4 py-2 rounded transition-colors font-medium text-sm tracking-wide uppercase disabled:opacity-50">
+            <RotateCcw className="w-4 h-4" /> RESET HUNT
           </button>
+          <div className={`ml-auto px-3 py-2 rounded border text-xs uppercase tracking-widest ${game.running ? 'border-green-900 bg-green-950/30 text-green-400' : 'border-gray-800 bg-black/30 text-gray-500'}`}>
+            {game.running ? `LIVE · STAGE ${game.current_stage}` : 'MASTER CONTROL STOPPED'}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 shrink-0">
-          {visibleTracks.map((track) => {
-            const state = schedules[track];
+        {message && <div className="border border-gold/20 bg-gold/5 text-gold px-4 py-3 rounded text-sm">{message}</div>}
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
+          {TRACKS.map(track => {
+            const trackTeams = teams.filter(team => team.track_id === track);
+            const active = trackTeams.filter(team => team.status === 'ACTIVE').length;
+            const waiting = trackTeams.filter(team => team.status === 'WAITING').length;
             return (
-              <div key={track} className="bg-[#151515] border border-gray-800 p-3 rounded">
-                <div className="flex items-center justify-between gap-3">
-                  <button onClick={() => setSelectedTrack(track)} className={`font-medium ${selectedTrack === track ? 'text-gold' : 'text-gray-300'}`}>Track {track}</button>
-                  <button onClick={() => handleTrackToggle(track)} disabled={busy !== null} className={`flex items-center gap-1 px-2 py-1 rounded text-xs uppercase ${state?.enabled ? 'bg-red-950 text-red-300' : 'bg-green-950 text-green-300'} disabled:opacity-50`}>
-                    {state?.enabled ? <Square className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                    {state?.enabled ? 'Stop' : 'Start'}
-                  </button>
+              <button key={track} onClick={() => setSelectedTrack(track)} className={`text-left bg-[#151515] border p-4 rounded transition-colors ${selectedTrack === track ? 'border-gold/60' : 'border-gray-800 hover:border-gray-700'}`}>
+                <div className="flex items-center justify-between">
+                  <span className="font-display text-xl text-gray-200">Track {track}</span>
+                  {active > 0 && <span className="text-[10px] uppercase tracking-widest text-green-400">LIVE</span>}
                 </div>
-                <div className="text-xs text-gray-500 mt-2">{state?.active_now ? 'LIVE NOW' : state?.starts_at ? `Scheduled: ${new Date(state.starts_at).toLocaleString()}` : 'No schedule set'}</div>
-              </div>
+                <div className="text-xs text-gray-500 mt-2">{active} active · {waiting} waiting · {trackTeams.length} total</div>
+              </button>
             );
           })}
         </div>
 
-        {activeTrack && (
-          <div className="bg-[#111] border border-gray-800 rounded p-4 shrink-0">
-            <div className="flex flex-wrap items-end gap-3">
-              <div><label className="block text-xs uppercase tracking-wider text-gray-500 mb-1">Track {activeTrack} start</label><input type="datetime-local" value={scheduleStart} onChange={(e) => setScheduleStart(e.target.value)} className="bg-[#1a1a1a] border border-gray-700 rounded px-3 py-2 text-sm text-white" /></div>
-              <div><label className="block text-xs uppercase tracking-wider text-gray-500 mb-1">Track {activeTrack} end</label><input type="datetime-local" value={scheduleEnd} onChange={(e) => setScheduleEnd(e.target.value)} className="bg-[#1a1a1a] border border-gray-700 rounded px-3 py-2 text-sm text-white" /></div>
-              <button onClick={handleScheduleSave} disabled={busy !== null} className="bg-gold text-black px-4 py-2 rounded text-sm font-semibold disabled:opacity-50">Save Timing</button>
-            </div>
-            <p className="text-xs text-gray-600 mt-2">Master Start launches every track immediately. Track controls and schedules can still be used for individual track control afterward.</p>
-          </div>
-        )}
+        <div className="flex items-center gap-3 shrink-0">
+          <button onClick={() => setSelectedTrack('ALL')} className={`text-xs uppercase tracking-widest px-3 py-2 rounded border ${selectedTrack === 'ALL' ? 'border-gold text-gold' : 'border-gray-800 text-gray-500'}`}>All Tracks</button>
+          <div className="text-xs text-gray-500">Server state · {counts.ACTIVE ?? 0} active · {counts.PROMOTED ?? 0} promoted · {counts.ELIMINATED ?? 0} eliminated</div>
+          <input type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search crews..." className="ml-auto bg-[#1a1a1a] border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gold" />
+        </div>
 
-        <div className="flex-1 min-h-[400px]"><LiveOverviewTable teams={displayedTeams} /></div>
+        <div className="flex-1 min-h-[400px] bg-[#111] rounded-lg border border-gray-800 overflow-hidden">
+          <div className="p-4 border-b border-gray-800">
+            <h3 className="font-medium text-white">All Crews ({visibleTeams.length})</h3>
+            <p className="text-[10px] uppercase tracking-widest text-gray-600 mt-1">Authoritative Convergence state · refreshed every 3 seconds</p>
+          </div>
+          <div className="overflow-auto h-full">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead className="bg-[#151515] text-gray-500 uppercase tracking-wider text-xs sticky top-0 z-10">
+                <tr><th className="px-4 py-3 font-medium">Crew</th><th className="px-4 py-3 font-medium text-center">Track</th><th className="px-4 py-3 font-medium text-center">Stage</th><th className="px-4 py-3 font-medium">Step</th><th className="px-4 py-3 font-medium">Status</th><th className="px-4 py-3 font-medium text-right">Elapsed</th></tr>
+              </thead>
+              <tbody className="divide-y divide-gray-800/50">
+                {visibleTeams.map(team => {
+                  const stuck = team.status === 'ACTIVE' && team.last_action_at && now - new Date(team.last_action_at).getTime() > 20 * 60 * 1000;
+                  return (
+                    <tr key={team.id} className={`transition-colors ${stuck ? 'border-l-4 border-l-amber-500 bg-amber-900/10' : 'hover:bg-[#1a1a1a]'}`}>
+                      <td className="px-4 py-4 font-medium text-gray-200">{team.name}{stuck && <div className="text-xs text-amber-500 mt-1">Stuck (&gt;20m)</div>}</td>
+                      <td className="px-4 py-4 text-center"><span className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white bg-gray-700">{team.track_id}</span></td>
+                      <td className="px-4 py-4 text-center font-mono text-gold">{team.stage}/10</td>
+                      <td className="px-4 py-4 text-xs text-gray-400">{statusLabel(team.step)}</td>
+                      <td className="px-4 py-4"><div className="flex items-center gap-2">{team.status === 'ACTIVE' ? <Play className="w-4 h-4 text-green-500" fill="currentColor" /> : <Square className="w-4 h-4 text-gray-600" fill="currentColor" />}<span className="text-xs uppercase tracking-wider">{statusLabel(team.status)}</span></div></td>
+                      <td className="px-4 py-4 text-right font-mono text-gray-400">{formatElapsed(team.started_at, undefined, now)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {!visibleTeams.length && <div className="p-10 text-center text-gray-600">No Convergence teams match this view.</div>}
+          </div>
+        </div>
       </div>
     </OrganizerLayout>
   );
