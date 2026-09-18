@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -23,7 +23,6 @@ export function DashboardScreen() {
   const [value,setValue]=useState('');
   const [error,setError]=useState('');
   const [busy,setBusy]=useState(false);
-  const [localWarning,setLocalWarning]=useState<number|null>(null);
   const state=convergenceState;
   const content=state?.content ?? null;
 
@@ -40,11 +39,6 @@ export function DashboardScreen() {
     document.addEventListener('visibilitychange',onVisibility);
     return()=>document.removeEventListener('visibilitychange',onVisibility);
   },[sessionToken,state]);
-
-  const progressIndex=useMemo(()=>{
-    const i=STEPS.indexOf(state?.step ?? 'HAND_IN');
-    return i<0?0:i;
-  },[state?.step]);
 
   const submit=async(action:string)=>{
     if(!sessionToken || busy) return;
@@ -111,7 +105,6 @@ export function DashboardScreen() {
         </div>
       )}
 
-      {localWarning && <div className="mt-4 text-center text-amber-300 text-xs">Warning {localWarning}/2</div>}
       <div className="mt-8 text-center text-[9px] uppercase tracking-[.3em] text-muted/60">Progress is server-synced. Refreshing will not reset your route.</div>
     </div>
   </AppShell>;
