@@ -38,63 +38,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [convergenceLoadError, setConvergenceLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    let unsubscribe: (() => void) | undefined;
     let cancelled = false;
     let refreshInterval: number | undefined;
-
-    const clearSession = () => {
-      setSessionToken(null);
-      setRealtimeKey(null);
-      localStorage.removeItem('sessionToken');
-      localStorage.removeItem('realtimeKey');
-      setProgress(null);
-      setConvergenceState(null);
-      setConvergenceLoadError(null);
-    };
 
     const refresh = async () => {
       if (!sessionToken || cancelled) return;
       try {
-        const state = await getTeamState(sessionToken);
+        const convergence = await getConvergenceState(sessionToken);
         if (cancelled) return;
-        if (!state) {
-          clearSession();
+        if (!convergence) {
+          setConvergenceLoadError('Your team session has expired. Please log in again.');
+          setConvergenceState(null);
           return;
         }
-        setTeamId(state.team_id);
-        setTeamName(state.name);
-        setTrackId(state.track_id);
-        setRealtimeKey(state.realtime_key);
-        setProgress(state.progress as TeamProgress | null);
-        try {
-          const convergence = await getConvergenceState(sessionToken);
-          setConvergenceState(convergence);
-          setConvergenceLoadError(null);
-        } catch {
-          setConvergenceLoadError('Unable to sync the live route. Retrying automatically…');
+
+        setTeamId(convergence.team_id);
+        setTeamName(convergence.name);
+        setTrackId(convergence.track_id);
+        setConvergenceState(convergence);
+        setConvergenceLoadError(null);
+
+        localStorage.setItem('teamId', convergence.team_id);
+        localStorage.setItem('teamName', convergence.name);
+        localStorage.setItem('trackId', convergence.track_id);
+      } catch (error) {
+        if (!cancelled) {
+          console.error('[Convergence] live state refresh failed', error);
+          setConvergenceLoadError('Live route sync is unavailable. Retrying automatically…');
         }
-        localStorage.setItem('teamId', state.team_id);
-        localStorage.setItem('teamName', state.name);
-        localStorage.setItem('trackId', state.track_id);
-        localStorage.setItem('realtimeKey', state.realtime_key);
-        if (!unsubscribe && state.realtime_key) {
-          unsubscribe = subscribeToTeamProgress(state.realtime_key, () => {
-            if (!cancelled) void refresh();
-          });
-        }
-      } catch {
-        if (!cancelled) setConvergenceLoadError('Live route sync is unavailable. The page will keep retrying automatically.');
       }
     };
 
     if (sessionToken) {
       void refresh();
-      refreshInterval = window.setInterval(() => void refresh(), 5000);
+      // Convergence control is authoritative. Poll independently of the legacy hunt system
+      // so MASTER START is reflected even when the old team-progress RPC is unavailable.
+      refreshInterval = window.setInterval(() => void refresh(), 2000);
     }
 
     return () => {
       cancelled = true;
-      if (unsubscribe) unsubscribe();
       if (refreshInterval) window.clearInterval(refreshInterval);
     };
   }, [sessionToken]);
