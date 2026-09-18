@@ -29,7 +29,7 @@ function AppRoutes() {
         <Route path="/clue/:id" element={<PageTransition><ActiveClueScreen /></PageTransition>} />
         <Route path="/clue/:id/success" element={<PageTransition><SuccessScreen /></PageTransition>} />
         <Route path="/treasure" element={<PageTransition><TreasureScreen /></PageTransition>} />
-        <Route path="/leaderboard" element={<PageTransition><LeaderboardScreen /></PageTransition>} />
+        <Route path="/leaderboard" element={<Navigate to="/dashboard" replace />} />
         <Route path="/organizer" element={<OrganizerLoginScreen />} />
         <Route path="/organizer/dashboard" element={<OrganizerGuard><OrganizerDashboardScreen /></OrganizerGuard>} />
         <Route path="/organizer/control" element={<OrganizerGuard><ConvergenceControlScreen /></OrganizerGuard>} />
