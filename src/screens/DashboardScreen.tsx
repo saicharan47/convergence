@@ -86,6 +86,7 @@ export function DashboardScreen() {
       ) : (
         <div className="space-y-5">
           {content?.sticker_image_url && <div className="mx-auto w-40 h-40 rounded-2xl overflow-hidden border border-gold/30 bg-black/50"><img src={content.sticker_image_url} alt="Mission sticker" className="w-full h-full object-contain"/></div>}
+          {state.step==='HAND_IN' && <div className="mx-auto w-40 h-40 rounded-2xl border border-gold/40 bg-gold/5 flex flex-col items-center justify-center animate-glow"><span className="text-4xl">🔓</span><span className="font-display text-gold tracking-widest mt-2">STICKER 1</span><span className="text-[9px] uppercase tracking-widest text-muted mt-1">Unlocked</span></div>}
           {content?.physical_location && <div className="rounded-xl border border-gold/15 bg-gold/5 p-3 text-sm text-offwhite/80"><span className="text-[10px] uppercase tracking-widest text-gold block mb-1">Physical location</span>{content.physical_location}</div>}
           {content?.title && <h3 className="font-display text-2xl text-offwhite uppercase tracking-wider">{content.title}</h3>}
           {content?.body && <div className="rounded-2xl border border-white/10 bg-black/35 p-5 text-offwhite/90 leading-relaxed whitespace-pre-wrap">{content.body}</div>}
