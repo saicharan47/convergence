@@ -20,6 +20,7 @@ interface AppState {
   realtimeKey: string | null;
   progress: TeamProgress | null;
   convergenceState: ConvergenceState | null;
+  convergenceLoadError: string | null;
   setTeamLogin: (teamId: string, teamName: string, trackId: string, token: string, realtimeKey: string) => void;
   logout: () => void;
 }
@@ -34,6 +35,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [realtimeKey, setRealtimeKey] = useState<string | null>(() => localStorage.getItem('realtimeKey'));
   const [progress, setProgress] = useState<TeamProgress | null>(null);
   const [convergenceState, setConvergenceState] = useState<ConvergenceState | null>(null);
+  const [convergenceLoadError, setConvergenceLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
@@ -47,6 +49,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('realtimeKey');
       setProgress(null);
       setConvergenceState(null);
+      setConvergenceLoadError(null);
     };
 
     const refresh = async () => {
@@ -63,7 +66,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setTrackId(state.track_id);
         setRealtimeKey(state.realtime_key);
         setProgress(state.progress as TeamProgress | null);
-        try { setConvergenceState(await getConvergenceState(sessionToken)); } catch { /* retain last known convergence state */ }
+        try {
+          const convergence = await getConvergenceState(sessionToken);
+          setConvergenceState(convergence);
+          setConvergenceLoadError(null);
+        } catch {
+          setConvergenceLoadError('Unable to sync the live route. Retrying automatically…');
+        }
         localStorage.setItem('teamId', state.team_id);
         localStorage.setItem('teamName', state.name);
         localStorage.setItem('trackId', state.track_id);
@@ -119,7 +128,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('roomCode');
   };
 
-  return <AppContext.Provider value={{ teamId, teamName, trackId, sessionToken, realtimeKey, progress, convergenceState, setTeamLogin, logout }}>{children}</AppContext.Provider>;
+  return <AppContext.Provider value={{ teamId, teamName, trackId, sessionToken, realtimeKey, progress, convergenceState, convergenceLoadError, setTeamLogin, logout }}>{children}</AppContext.Provider>;
 }
 
 export function useAppContext() {
