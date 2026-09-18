@@ -27,15 +27,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm run dev -- --host 127.0.0.1 > /tmp/convergence-vite.log 2>&1 &
+          npm run dev -- --host 127.0.0.1 --strictPort > /tmp/convergence-vite.log 2>&1 &
           pid=$!
           cleanup() {
             kill "$pid" 2>/dev/null || true
             wait "$pid" 2>/dev/null || true
           }
           trap cleanup EXIT
-          for attempt in {1..30}; do
+
+          ready=0
+          for attempt in {1..60}; do
             if curl --fail --silent --show-error http://127.0.0.1:5173/ > /tmp/convergence-home.html; then
+              ready=1
               break
             fi
             if ! kill -0 "$pid" 2>/dev/null; then
@@ -44,12 +47,18 @@ jobs:
             fi
             sleep 1
           done
+          if [ "$ready" -ne 1 ]; then
+            cat /tmp/convergence-vite.log
+            exit 1
+          fi
           test -s /tmp/convergence-home.html
+
           for route in /team /waiting /dashboard /clue/1 /clue/1/success /treasure /leaderboard /organizer /organizer/dashboard /organizer/teams /organizer/clues /organizer/leaderboard /profile /not-a-real-route; do
             curl --fail --silent --show-error "http://127.0.0.1:5173${route}" > /tmp/convergence-route.html
             test -s /tmp/convergence-route.html
             grep -qi '<!doctype html' /tmp/convergence-route.html
           done
+
           if grep -Eqi '(^|[^a-z])(error|fatal|uncaught)([^a-z]|$)' /tmp/convergence-vite.log; then
             cat /tmp/convergence-vite.log
             exit 1
