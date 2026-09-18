@@ -40,19 +40,22 @@ export function DashboardScreen() {
     return()=>document.removeEventListener('visibilitychange',onVisibility);
   },[sessionToken,state]);
 
-  const submit=async(action:string)=>{
+  const submit=async(action:string, overrideValue?:string)=>{
     if(!sessionToken || busy) return;
+    const submittedValue=(overrideValue ?? value).trim();
     const required=expectedLength(state?.step ?? '');
-    if(action!=='ACK_RIDDLE' && action!=='FINAL_SUBMISSION' && value.trim().length<required){setError(`Enter the required ${required}-digit answer.`);return;}
+    if(action!=='ACK_RIDDLE' && action!=='FINAL_SUBMISSION' && submittedValue.length<required){setError(`Enter the required ${required}-digit answer.`);return;}
     setBusy(true);setError('');
     try{
-      const result=await verifyConvergenceAction(sessionToken,action,value.trim());
+      const result=await verifyConvergenceAction(sessionToken,action,submittedValue);
       if(!result.ok){setError(result.reason==='game_paused'?'The game is currently paused.':result.reason==='treasure_already_found'?'The treasure has already been claimed.':'Incorrect entry. Try again.');return;}
       setValue('');
       if(result.status==='WINNER') navigate('/treasure',{replace:true});
     }catch{setError('Connection error. Your progress is safe. Try again.')}
     finally{setBusy(false);}
   };
+
+  useEffect(()=>{const token=new URLSearchParams(window.location.search).get('checkpoint');if(!token||!sessionToken||!state?.step?.endsWith('_QR'))return;void submit('CHECKPOINT_QR',token)},[sessionToken,state?.step]);
 
   const showInput=['STICKER_1','STICKER_2','ANSWER_2','CHECKPOINT_1_QR','CHECKPOINT_1_CODE','SNIPPET_1','STICKER_4','STICKER_5','ANSWER_5','CHECKPOINT_2_QR','CHECKPOINT_2_CODE','SNIPPET_2','STICKER_7','CLUE_9'].includes(state?.step ?? '');
   const action=state?.step?.includes('ANSWER')?'ANSWER':state?.step?.includes('STICKER')?'STICKER_CODE':state?.step?.includes('CHECKPOINT_')?'CHECKPOINT_'+(state.step.endsWith('_QR')?'QR':'CODE'):state?.step?.includes('SNIPPET')?'SNIPPET':state?.step==='CLUE_9'?'CLUE9_CODE':'';
