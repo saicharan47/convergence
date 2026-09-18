@@ -89,7 +89,7 @@ export async function authenticateTeamV2(trackId: string, teamId: string, passwo
 }
 export async function getConvergenceState(token: string): Promise<ConvergenceState | null> {
   if (!token) return null;
-  const { data, error } = await supabase.rpc('convergence_safe_state', { p_token: token });
+  const { data, error } = await supabase.rpc('convergence_client_state', { p_token: token });
   if (error) {
     console.error('[Convergence] state sync failed', error);
     throw error;
