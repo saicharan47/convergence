@@ -42,6 +42,19 @@ function statusLabel(status: string) {
   return status.replaceAll('_', ' ');
 }
 
+function errorMessage(error: unknown, fallback: string) {
+  if (error && typeof error === 'object') {
+    const value = error as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown };
+    const message = typeof value.message === 'string' ? value.message : '';
+    const details = typeof value.details === 'string' ? value.details : '';
+    const hint = typeof value.hint === 'string' ? value.hint : '';
+    const code = typeof value.code === 'string' ? value.code : '';
+    const extra = [details, hint].filter(Boolean).join(' · ');
+    if (message) return [code ? `[${code}]` : '', message, extra].filter(Boolean).join(' ');
+  }
+  return error instanceof Error ? error.message : fallback;
+}
+
 export function OrganizerDashboardScreen() {
   const [game, setGame] = useState<GameState>({ current_stage: 1, running: false, stage_started_at: null });
   const [teams, setTeams] = useState<TeamRow[]>([]);
@@ -57,7 +70,7 @@ export function OrganizerDashboardScreen() {
       setGame(data.game);
       setTeams(data.teams as TeamRow[]);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to sync Convergence control state.');
+      setMessage(errorMessage(error, 'Unable to sync Convergence control state.'));
     }
   };
 
@@ -88,7 +101,7 @@ export function OrganizerDashboardScreen() {
       await action();
       await load();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Control action failed.');
+      setMessage(errorMessage(error, 'Control action failed.'));
     } finally {
       setBusy(null);
     }
