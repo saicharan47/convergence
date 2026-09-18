@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -24,9 +24,9 @@ export function DashboardScreen() {
   const state=convergenceState;
   const content=state?.content ?? null;
 
-  useEffect(()=>{ if(!sessionToken){ navigate('/',{replace:true}); return;} },[sessionToken,navigate]);
+  useEffect(()=>{ if(!sessionToken){ navigate('/',{replace:true}); } },[sessionToken,navigate]);
 
-  const submit=async(action:string, overrideValue?:string)=>{
+  const submit=useCallback(async(action:string, overrideValue?:string)=>{
     if(!sessionToken || busy) return;
     const submittedValue=(overrideValue ?? value).trim();
     const required=expectedLength(state?.step ?? '');
@@ -39,7 +39,7 @@ export function DashboardScreen() {
       if(result.status==='WINNER') navigate('/treasure',{replace:true});
     }catch{setError('Connection error. Your progress is safe. Try again.')}
     finally{setBusy(false);}
-  };
+  },[sessionToken,busy,value,state?.step,navigate]);
 
   useEffect(()=>{const token=new URLSearchParams(window.location.search).get('checkpoint');if(!token||!sessionToken||!state?.step?.endsWith('_QR'))return;void submit('CHECKPOINT_QR',token)},[sessionToken,state?.step,submit]);
 
