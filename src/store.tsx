@@ -83,7 +83,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           });
         }
       } catch {
-        // Transient network/Supabase failures must not invalidate a valid local session.
+        if (!cancelled) setConvergenceLoadError('Live route sync is unavailable. The page will keep retrying automatically.');
       }
     };
 
