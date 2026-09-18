@@ -12,6 +12,7 @@ import { OrganizerDashboardScreen } from './screens/organizer/OrganizerDashboard
 import { ClueManagementScreen } from './screens/organizer/ClueManagementScreen';
 import { OrganizerLeaderboardScreen } from './screens/organizer/OrganizerLeaderboardScreen';
 import { ParticipantTeamsManagerScreen } from './screens/organizer/ParticipantTeamsManagerScreen';
+import { ConvergenceControlScreen } from './screens/organizer/ConvergenceControlScreen';
 import { OrganizerGuard } from './components/OrganizerGuard';
 import { AnimatePresence } from 'framer-motion';
 import { PageTransition } from './components/PageTransition';
@@ -31,6 +32,7 @@ function AppRoutes() {
         <Route path="/leaderboard" element={<PageTransition><LeaderboardScreen /></PageTransition>} />
         <Route path="/organizer" element={<OrganizerLoginScreen />} />
         <Route path="/organizer/dashboard" element={<OrganizerGuard><OrganizerDashboardScreen /></OrganizerGuard>} />
+        <Route path="/organizer/control" element={<OrganizerGuard><ConvergenceControlScreen /></OrganizerGuard>} />
         <Route path="/organizer/teams" element={<OrganizerGuard><ParticipantTeamsManagerScreen /></OrganizerGuard>} />
         <Route path="/organizer/clues" element={<OrganizerGuard><ClueManagementScreen /></OrganizerGuard>} />
         <Route path="/organizer/leaderboard" element={<OrganizerGuard><OrganizerLeaderboardScreen /></OrganizerGuard>} />
