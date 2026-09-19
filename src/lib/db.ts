@@ -111,6 +111,11 @@ export async function setConvergenceGame(stage: number, running: boolean) {
   const { error } = await supabase.rpc('convergence_admin_set_game', { p_stage: stage, p_running: running });
   if (error) throw error;
 }
+export async function setConvergenceBuffer(enabled: boolean) {
+  const { data, error } = await supabase.rpc('convergence_admin_set_buffer', { p_enabled: enabled });
+  if (error) throw error;
+  return data as { ok:boolean; buffer_active:boolean; buffer_started_at:string|null; buffer_ends_at:string|null; server_now:string };
+}
 export async function getConvergenceAdminDashboard(trackId: string | null = null) {
   const { data, error } = await supabase.rpc('convergence_admin_get_dashboard', { p_track_id: trackId });
   if (error) throw error;
