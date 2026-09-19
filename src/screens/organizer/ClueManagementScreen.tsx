@@ -10,6 +10,7 @@ export function ClueManagementScreen() {
   const [selectedClue, setSelectedClue] = useState(1);
   const [allowedTrack, setAllowedTrack] = useState<string | null>(null);
   const [clueData, setClueData] = useState<ClueData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -33,19 +34,28 @@ export function ClueManagementScreen() {
     if (allowedTrack && selectedTrack !== allowedTrack) return;
     let cancelled = false;
     async function load() {
+      setIsLoading(true);
       setErrorMessage('');
-      const data = await getClue(selectedTrack, selectedClue);
-      if (cancelled) return;
-      if (data) {
+      try {
+        const data = await getClue(selectedTrack, selectedClue);
+        if (cancelled) return;
+        if (data) {
         setClueData(data);
         setRiddle(data.riddle);
         setInstruction(data.instruction || '');
         setStickerImageUrl(data.stickerImageUrl || '');
         setClueImageUrl(data.clueImageUrl || '');
-      } else {
-        setClueData(null); setRiddle(''); setInstruction(''); setStickerImageUrl(''); setClueImageUrl('');
+        } else {
+          setClueData(null); setRiddle(''); setInstruction(''); setStickerImageUrl(''); setClueImageUrl('');
+        }
+        setSaveSuccess(false);
+      } catch (error) {
+        if (cancelled) return;
+        setClueData(null);
+        setErrorMessage(error instanceof Error ? error.message : 'Unable to load clue data.');
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
-      setSaveSuccess(false);
     }
     void load();
     return () => { cancelled = true; };
@@ -76,6 +86,8 @@ export function ClueManagementScreen() {
       <div><label className="block text-xs uppercase tracking-wider text-gray-400 mb-2">Instruction</label><textarea value={instruction} onChange={e=>setInstruction(e.target.value)} className="w-full h-24 bg-[#1a1a1a] border border-gray-700 rounded p-3 text-gray-200 focus:outline-none focus:border-gold resize-none" placeholder="E.g., Find the physical marker and enter the 5-digit code..."/></div>
       <div><label className="block text-xs uppercase tracking-wider text-gray-400 mb-2">Sticker Image URL</label><input type="text" value={stickerImageUrl} onChange={e=>setStickerImageUrl(e.target.value)} className="w-full bg-[#1a1a1a] border border-gray-700 rounded p-3 text-gray-200 focus:outline-none focus:border-gold" placeholder="https://..."/>{stickerImageUrl?<div className="mt-4 border border-gray-800 rounded-lg p-4 bg-[#151515] flex justify-center"><img src={stickerImageUrl} alt="Sticker preview" className="max-h-48 object-contain rounded"/></div>:<div className="mt-4 text-center text-gray-600"><ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50"/><p className="text-sm">No sticker image</p></div>}</div>
       <div><label className="block text-xs uppercase tracking-wider text-gray-400 mb-2">Clue Image URL</label><input type="text" value={clueImageUrl} onChange={e=>setClueImageUrl(e.target.value)} className="w-full bg-[#1a1a1a] border border-gray-700 rounded p-3 text-gray-200 focus:outline-none focus:border-gold" placeholder="https://..."/>{clueImageUrl?<div className="mt-4 border border-gray-800 rounded-lg p-4 bg-[#151515] flex justify-center"><img src={clueImageUrl} alt="Clue preview" className="max-h-64 object-contain rounded"/></div>:<div className="mt-4 text-center text-gray-600"><ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50"/><p className="text-sm">No clue image</p></div>}</div></div>
-    </>:<div className="flex-1 flex items-center justify-center text-gray-500">Loading clue data...</div>}</div>
+    </>:<div className="flex-1 flex items-center justify-center text-gray-500">
+      {isLoading ? 'Loading clue data...' : errorMessage ? 'Unable to load this clue.' : `No clue data for Track ${selectedTrack} · Clue ${selectedClue}.`}
+    </div>}</div>
   </div></OrganizerLayout>;
 }
