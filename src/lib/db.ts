@@ -32,7 +32,26 @@ export async function getTrackHuntState(trackId: string): Promise<TrackSchedule 
 export async function setTrackHuntStatus(trackId: string, enabled: boolean) { const { error } = await supabase.rpc('set_track_hunt_status', { p_track_id: trackId, p_enabled: enabled }); if (error) throw error; }
 export async function setTrackSchedule(trackId: string, startsAt: string | null, endsAt: string | null) { const { error } = await supabase.rpc('set_track_schedule', { p_track_id: trackId, p_starts_at: startsAt, p_ends_at: endsAt }); if (error) throw error; }
 export async function getOrganizerOverview(trackId: string | null = null): Promise<TeamData[]> { const { data, error } = await supabase.rpc('get_organizer_overview', { p_track_id: trackId }); if (error || !data) return []; return (data as OrganizerOverviewRow[]).map(t => ({ id: t.id, name: t.team, track: t.track_id, secretCode: '', unlockedClueIndex: t.progress, checkpoints: [], createdAt: Date.now(), startedAt: t.started_at ? new Date(t.started_at).getTime() : undefined, finishedAt: t.finished_at ? new Date(t.finished_at).getTime() : undefined, disqualified: Boolean(t.disqualified) })); }
-export async function getClue(trackId: string, clueIndex: number): Promise<ClueData | null> { const clues = await getClues(trackId); const c = clues.find(clue => clue.clue_number === clueIndex); if (!c) return null; return { id: c.id, clueNumber: c.clue_number, title: c.title, riddle: c.question, instruction: c.instruction, stickerImageUrl: c.sticker_image_url, clueImageUrl: c.clue_image_url }; }
+export async function getClue(trackId: string, clueIndex: number): Promise<ClueData | null> {
+  const { data, error } = await supabase
+    .from('clues')
+    .select('id, track_id, clue_number, title, question, instruction, sticker_image_url, clue_image_url')
+    .eq('track_id', trackId)
+    .eq('clue_number', clueIndex)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const c = data as MockClue;
+  return {
+    id: c.id,
+    clueNumber: c.clue_number,
+    title: c.title,
+    riddle: c.question,
+    instruction: c.instruction,
+    stickerImageUrl: c.sticker_image_url,
+    clueImageUrl: c.clue_image_url,
+  };
+}
 export async function updateClue(trackId: string, clueIndex: number, updates: Partial<ClueData>) { const { data: clue, error: lookupError } = await supabase.from('clues').select('id').eq('track_id', trackId).eq('clue_number', clueIndex).single(); if (lookupError || !clue) throw lookupError || new Error('Clue not found'); const payload: Record<string, unknown> = { updated_at: new Date().toISOString() }; if (updates.title !== undefined) payload.title = updates.title; if (updates.riddle !== undefined) payload.question = updates.riddle; if (updates.instruction !== undefined) payload.instruction = updates.instruction; if (updates.stickerImageUrl !== undefined) payload.sticker_image_url = updates.stickerImageUrl; if (updates.clueImageUrl !== undefined) payload.clue_image_url = updates.clueImageUrl; const { error } = await supabase.from('clues').update(payload).eq('id', clue.id); if (error) throw error; }
 export async function getOrganizerTeams(trackId: string | null = null): Promise<OrganizerTeam[]> { const { data, error } = await supabase.rpc('get_organizer_teams', { p_track_id: trackId }); if (error || !data) return []; return data as OrganizerTeam[]; }
 export async function getOrganizerTeamMembers(teamId: string): Promise<TeamMember[]> { const { data, error } = await supabase.rpc('get_organizer_team_members', { p_team_id: teamId }); if (error || !data) return []; return data as TeamMember[]; }
