@@ -119,7 +119,7 @@ export async function setConvergenceBuffer(enabled: boolean) {
 export async function getConvergenceAdminDashboard(trackId: string | null = null) {
   const { data, error } = await supabase.rpc('convergence_admin_get_dashboard', { p_track_id: trackId });
   if (error) throw error;
-  return data as { game: { current_stage:number; running:boolean; stage_started_at:string|null }; teams: Array<Record<string,unknown>> };
+  return data as { game: { current_stage:number; running:boolean; stage_started_at:string|null; buffer_active:boolean; buffer_started_at:string|null; buffer_ends_at:string|null; server_now?:string }; teams: Array<Record<string,unknown>> };
 }
 export async function getConvergenceAudit(teamId: string | null = null) {
   const { data, error } = await supabase.rpc('convergence_admin_get_audit', { p_team_id: teamId });
