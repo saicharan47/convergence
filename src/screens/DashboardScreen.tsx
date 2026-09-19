@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -21,8 +21,14 @@ export function DashboardScreen() {
   const [value,setValue]=useState('');
   const [error,setError]=useState('');
   const [busy,setBusy]=useState(false);
+  const [clock,setClock]=useState(()=>Date.now());
   const state=convergenceState;
   const content=state?.content ?? null;
+  useEffect(()=>{const id=window.setInterval(()=>setClock(Date.now()),100);return()=>window.clearInterval(id);},[]);
+  const serverOffset=useMemo(()=>state?.server_now?new Date(state.server_now).getTime()-clock:0,[state?.server_now,clock]);
+  const serverNow=clock+serverOffset;
+  const bufferRemaining=state?.buffer_ends_at?Math.max(0,new Date(state.buffer_ends_at).getTime()-serverNow):0;
+  const formatBuffer=(ms:number)=>{const m=Math.floor(ms/60000);const s=Math.floor((ms%60000)/1000);const milli=ms%1000;return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(milli).padStart(3,'0')}`;};
 
   useEffect(()=>{ if(!sessionToken){ navigate('/',{replace:true}); } },[sessionToken,navigate]);
 
@@ -34,7 +40,7 @@ export function DashboardScreen() {
     setBusy(true);setError('');
     try{
       const result=await verifyConvergenceAction(sessionToken,action,submittedValue);
-      if(!result.ok){setError(result.reason==='game_paused'?'The game is currently paused.':result.reason==='treasure_already_found'?'The treasure has already been claimed.':'Incorrect entry. Try again.');return;}
+      if(!result.ok){setError(result.reason==='game_paused'?'The game is currently paused.':result.reason==='buffer_period'?'The 20-minute buffer period is active. Wait for the organizer to end it or for the timer to finish.':result.reason==='treasure_already_found'?'The treasure has already been claimed.':'Incorrect entry. Try again.');return;}
       setValue('');
       if(result.status==='WINNER') navigate('/treasure',{replace:true});
     }catch{setError('Connection error. Your progress is safe. Try again.')}
@@ -55,7 +61,7 @@ export function DashboardScreen() {
     <div className="flex-1 py-3">
       <div className="text-center mb-6"><p className="text-[10px] text-gold uppercase tracking-[.35em]">Track {trackId}</p><h2 className="font-display text-2xl text-offwhite uppercase tracking-widest mt-1">{teamName}</h2></div>
       <div className="rounded-2xl border border-gold/20 bg-black/30 p-4 mb-5"><div className="flex items-center justify-between text-[10px] uppercase tracking-[.25em] text-muted"><span>Current stage</span><span>{state.stage}/10</span></div><h3 className="font-display text-xl text-gold uppercase tracking-wider mt-2">{label(state.step)}</h3><div className="flex gap-1 mt-4">{Array.from({length:10}).map((_,i)=><div key={i} className={`h-1 flex-1 rounded ${i<Math.min(state.stage,10)?'bg-gold':'bg-white/10'}`}/>)}</div></div>
-      {!state.game_running || state.status==='PAUSED' || state.step==='STAGE_4_ASSIGNMENT' || state.step==='STAGE_7' ? <div className="rounded-2xl border border-white/10 bg-black/30 p-6 text-center"><div className="text-4xl mb-3">⏸</div><h3 className="font-display text-xl text-offwhite uppercase tracking-widest">{state.status==='WAITING'?'Awaiting Orders':'Game Paused'}</h3><p className="text-sm text-muted mt-2">{state.status==='WAITING'?'The admin has not started the hunt yet. This page will update automatically.':'Hold position. The organizer will resume the next stage when the route is ready.'}</p></div> : <div className="space-y-5">
+      {state.buffer_active && bufferRemaining>0 ? <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-6 text-center"><div className="text-4xl mb-3">⏳</div><p className="text-[10px] uppercase tracking-[.35em] text-amber-400">Buffer Period</p><h3 className="font-display text-3xl text-offwhite tracking-widest mt-2 font-mono">{formatBuffer(bufferRemaining)}</h3><p className="text-sm text-muted mt-3">The hunt is paused for the 20-minute buffer period. Your progress is saved. Wait for the organizer to start the next stage.</p></div> : !state.game_running || state.status==='PAUSED' || state.step==='STAGE_4_ASSIGNMENT' || state.step==='STAGE_7' ? <div className="rounded-2xl border border-white/10 bg-black/30 p-6 text-center"><div className="text-4xl mb-3">⏸</div><h3 className="font-display text-xl text-offwhite uppercase tracking-widest">Waiting Lounge</h3><p className="text-sm text-muted mt-2">The current stage is paused. Stay ready — this screen will update automatically when the organizer starts the next stage.</p></div> : <div className="space-y-5">
         {content?.sticker_image_url && <div className="mx-auto w-40 h-40 rounded-2xl overflow-hidden border border-gold/30 bg-black/50"><img src={content.sticker_image_url} alt="Mission sticker" className="w-full h-full object-contain"/></div>}
         {state.step==='HAND_IN' && <div className="mx-auto w-40 h-40 rounded-2xl border border-gold/40 bg-gold/5 flex flex-col items-center justify-center animate-glow"><span className="text-4xl">🔓</span><span className="font-display text-gold tracking-widest mt-2">STICKER 1</span><span className="text-[9px] uppercase tracking-widest text-muted mt-1">Unlocked</span></div>}
         {content?.physical_location && <div className="rounded-xl border border-gold/15 bg-gold/5 p-3 text-sm text-offwhite/80"><span className="text-[10px] uppercase tracking-widest text-gold block mb-1">Physical location</span>{content.physical_location}</div>}
