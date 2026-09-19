@@ -75,6 +75,11 @@ export interface ConvergenceState {
   stage_started_at?: string | null;
   started_at?: string | null;
   paused_at?: string | null;
+  completed_at?: string | null;
+  buffer_active: boolean;
+  buffer_started_at: string | null;
+  buffer_ends_at: string | null;
+  server_now: string;
   content?: ConvergenceContent | null;
 }
 export async function listTrackTeams(trackId: string): Promise<Array<{id:string;name:string}>> {
