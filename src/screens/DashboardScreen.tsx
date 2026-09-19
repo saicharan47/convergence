@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { useAppContext } from '../store';
-import { verifyConvergenceAction } from '../lib/db';
+import { recordConvergenceViolation, verifyConvergenceAction } from '../lib/db';
 
 function label(step:string) {
   return step.replaceAll('_',' ').replace('ANSWER 2','7-DIGIT ANSWER').replace('ANSWER 5','7-DIGIT ANSWER').replace('CHECKPOINT 1 QR','CHECKPOINT 1').replace('CHECKPOINT 2 QR','CHECKPOINT 2');
@@ -31,6 +31,16 @@ export function DashboardScreen() {
   const formatBuffer=(ms:number)=>{const m=Math.floor(ms/60000);const s=Math.floor((ms%60000)/1000);const milli=ms%1000;return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(milli).padStart(3,'0')}`;};
 
   useEffect(()=>{ if(!sessionToken){ navigate('/',{replace:true}); } },[sessionToken,navigate]);
+
+  useEffect(()=>{
+    if(!sessionToken || !state?.game_running || state.status==='ELIMINATED' || state.status==='WINNER') return;
+    const handleVisibility=()=>{
+      if(!document.hidden) return;
+      void recordConvergenceViolation(sessionToken,'TAB_HIDDEN',{step:state.step}).catch(()=>undefined);
+    };
+    document.addEventListener('visibilitychange',handleVisibility);
+    return()=>document.removeEventListener('visibilitychange',handleVisibility);
+  },[sessionToken,state?.game_running,state?.status,state?.step]);
 
   const submit=useCallback(async(action:string, overrideValue?:string)=>{
     if(!sessionToken || busy) return;
