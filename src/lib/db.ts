@@ -107,8 +107,8 @@ export async function verifyConvergenceAction(token: string, action: string, val
   if (error) throw error;
   return data as { ok:boolean; reason?:string; status?:string; next_step?:string; snippet?:string; rank?:number; timestamp?:string };
 }
-export async function recordConvergenceViolation(token: string, eventType: string) {
-  const { data, error } = await supabase.rpc('record_convergence_violation', { p_token: token, p_event_type: eventType, p_metadata: {} });
+export async function recordConvergenceViolation(token: string, eventType: string, metadata: Record<string, unknown> = {}) {
+  const { data, error } = await supabase.rpc('record_convergence_violation', { p_token: token, p_event_type: eventType, p_metadata: metadata });
   if (error) throw error;
   return data as { ok:boolean; warning?:number; status?:string };
 }
