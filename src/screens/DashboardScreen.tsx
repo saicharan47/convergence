@@ -40,7 +40,7 @@ export function DashboardScreen() {
     setBusy(true);setError('');
     try{
       const result=await verifyConvergenceAction(sessionToken,action,submittedValue);
-      if(!result.ok){setError(result.reason==='game_paused'?'The game is currently paused.':result.reason==='buffer_period'?'The 20-minute buffer period is active. Wait for the organizer to end it or for the timer to finish.':result.reason==='treasure_already_found'?'The treasure has already been claimed.':'Incorrect entry. Try again.');return;}
+      if(!result.ok){setError(result.reason==='game_paused'?'The game is currently paused.':result.reason==='buffer_period'?'The 20-minute buffer period is active. Wait for the organizer to end it or for the timer to finish.':result.reason==='rate_limited'?'Too many attempts in a short period. Wait a few seconds and try again.':result.reason==='treasure_already_found'?'The treasure has already been claimed.':'Incorrect entry. Try again.');return;}
       setValue('');
       if(result.status==='WINNER') navigate('/treasure',{replace:true});
     }catch{setError('Connection error. Your progress is safe. Try again.')}
