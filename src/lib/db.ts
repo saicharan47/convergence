@@ -158,8 +158,11 @@ export async function adminUpsertRouteItem(input: {teamId:string;stepKey:string;
   });
   if (error) throw error;
 }
-export async function adminUpsertCheckpoint(input:{stage:number;trackId:string;qrToken:string;checkpointCode:string;snippet:string;snippetAnswer:string}) {
-  const { error } = await supabase.rpc('convergence_admin_upsert_checkpoint', {p_stage:input.stage,p_track_id:input.trackId,p_qr_token:input.qrToken,p_checkpoint_code:input.checkpointCode,p_snippet:input.snippet,p_snippet_answer:input.snippetAnswer});
+export async function adminUpsertCheckpoint(input:{stage:number;trackId:string;qrToken:string;checkpointCode:string;snippet:string;snippetAnswer:string;qrLabel?:string;active?:boolean}) {
+  const { error } = await supabase.rpc('convergence_admin_upsert_checkpoint', {
+    p_stage:input.stage,p_track_id:input.trackId,p_qr_token:input.qrToken,p_checkpoint_code:input.checkpointCode,
+    p_snippet:input.snippet,p_snippet_answer:input.snippetAnswer,p_qr_label:input.qrLabel ?? null,p_active:input.active ?? true
+  });
   if (error) throw error;
 }
 export async function adminAssignSequence(teamId:string,sequenceId:string) {
