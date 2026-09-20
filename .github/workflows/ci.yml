@@ -25,6 +25,13 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: convergence-dist-${{ github.sha }}
+          path: dist
+          if-no-files-found: error
+
       - name: Runtime smoke test
         shell: bash
         run: |
