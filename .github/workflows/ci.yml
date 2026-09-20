@@ -1,5 +1,4 @@
 name: CI
-# Temporary full-tree verification
 
 on:
   push:
