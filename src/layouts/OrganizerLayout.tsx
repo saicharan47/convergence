@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '../lib/utils';
-import { LogOut, LayoutDashboard, List, Trophy, Users, Workflow } from 'lucide-react';
+import { LogOut, LayoutDashboard, List, Trophy, Users, Workflow, Settings2 } from 'lucide-react';
 
 interface OrganizerLayoutProps { children: React.ReactNode; className?: string; title?: string; }
 
@@ -12,6 +12,7 @@ export function OrganizerLayout({ children, className, title }: OrganizerLayoutP
     { label: 'Dashboard', path: '/organizer/dashboard', icon: LayoutDashboard },
     { label: 'Participant Teams', path: '/organizer/teams', icon: Users },
     { label: 'Convergence Control', path: '/organizer/control', icon: Workflow },
+    { label: 'Studio', path: '/organizer/studio', icon: Settings2 },
     { label: 'Clues', path: '/organizer/clues', icon: List },
     { label: 'Leaderboard', path: '/organizer/leaderboard', icon: Trophy },
   ];
