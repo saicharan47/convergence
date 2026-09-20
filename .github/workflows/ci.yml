@@ -53,7 +53,7 @@ jobs:
           fi
           test -s /tmp/convergence-home.html
 
-          for route in /team /waiting /dashboard /clue/1 /clue/1/success /treasure /leaderboard /organizer /organizer/dashboard /organizer/teams /organizer/clues /organizer/leaderboard /profile /not-a-real-route; do
+          for route in /team /waiting /dashboard /clue/1 /clue/1/success /treasure /leaderboard /organizer /organizer/dashboard /organizer/teams /organizer/clues /organizer/control /organizer/studio /organizer/leaderboard /profile /not-a-real-route; do
             curl --fail --silent --show-error "http://127.0.0.1:5173${route}" > /tmp/convergence-route.html
             test -s /tmp/convergence-route.html
             grep -qi '<!doctype html' /tmp/convergence-route.html
