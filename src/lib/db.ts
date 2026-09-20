@@ -167,9 +167,27 @@ export async function adminAssignSequence(teamId:string,sequenceId:string) {
   if (error) throw error;
 }
 
-export interface ConvergenceSequence { id:string; name:string; payload:Record<string,unknown>; assigned_team_id:string|null; }
+export interface ConvergenceSequence { id:string; name:string; payload:Record<string,unknown>; assigned_team_id:string|null; published:boolean; }
 export async function getConvergenceSequences():Promise<ConvergenceSequence[]> { const {data,error}=await supabase.rpc('convergence_admin_list_sequences'); if(error||!data)return []; return data as ConvergenceSequence[]; }
 export async function upsertConvergenceSequence(id:string|null,name:string,payload:Record<string,unknown>):Promise<string>{ const {data,error}=await supabase.rpc('convergence_admin_upsert_sequence',{p_id:id,p_name:name,p_payload:payload}); if(error)throw error; return data as string; }
 export async function adminUpsertPair(input:{teamId:string;pairKey:string;logicalClue:string;stickerImageUrl?:string;physicalLocation?:string;clue9Location?:string}){ const {error}=await supabase.rpc('convergence_admin_upsert_pair',{p_team_id:input.teamId,p_pair_key:input.pairKey,p_logical_clue:input.logicalClue,p_sticker_image_url:input.stickerImageUrl??null,p_physical_location:input.physicalLocation??null,p_clue9_location:input.clue9Location??null}); if(error)throw error; }
 
 export async function getAdminRouteItem(teamId:string,stepKey:string):Promise<Record<string,unknown>|null>{const {data,error}=await supabase.rpc('convergence_admin_get_route_item',{p_team_id:teamId,p_step_key:stepKey});if(error)throw error;return (data as Record<string,unknown>|null)??null;}
+
+
+export async function deleteConvergenceSequence(id:string){ const {error}=await supabase.rpc('convergence_admin_delete_sequence',{p_id:id}); if(error)throw error; }
+export async function duplicateConvergenceSequence(id:string,name:string){ const {data,error}=await supabase.rpc('convergence_admin_duplicate_sequence',{p_id:id,p_name:name}); if(error)throw error; return data as string; }
+export async function publishConvergenceSequence(id:string,published:boolean){ const {error}=await supabase.rpc('convergence_admin_publish_sequence',{p_id:id,p_published:published}); if(error)throw error; }
+export async function adminManualTeamAction(teamId:string,action:'PROMOTE'|'ELIMINATE'|'RESTORE'|'RESET',reason?:string){ const {data,error}=await supabase.rpc('convergence_admin_manual_team_action',{p_team_id:teamId,p_action:action,p_reason:reason??null}); if(error)throw error; return data as {ok:boolean;status:string;step:string}; }
+export async function getConvergenceCheckpoints(stage:number|null=null,trackId:string|null=null){ const {data,error}=await supabase.rpc('convergence_admin_list_checkpoints',{p_stage:stage,p_track_id:trackId}); if(error)throw error; return (data??[]) as Array<{id:string;stage:number;track_id:string;qr_label:string|null;active:boolean;qr_token:string|null;checkpoint_code:string|null;snippet:string;snippet_answer:string|null}>; }
+export async function getConvergencePairs(){ const {data,error}=await supabase.rpc('convergence_admin_get_pairs'); if(error)throw error; return (data??[]) as Array<{team_id:string;team_name:string;track_id:string;pair_key:string;logical_clue:string;sticker_image_url:string|null;physical_location:string|null;clue9_location:string|null}>; }
+export async function exportConvergenceConfig(){ const {data,error}=await supabase.rpc('convergence_admin_export_config'); if(error)throw error; return data as Record<string,unknown>; }
+export async function importConvergenceConfig(payload:Record<string,unknown>){ const {data,error}=await supabase.rpc('convergence_admin_import_config',{p_payload:payload}); if(error)throw error; return data as Record<string,number>; }
+export async function createConvergenceTestFixture(){ const {data,error}=await supabase.rpc('convergence_admin_test_fixture'); if(error)throw error; return data as {ok:boolean;team_id:string;team_name:string;password:string}; }
+export function subscribeToConvergenceState(realtimeKey:string,callback:()=>void){
+  if(!realtimeKey) return ()=>undefined;
+  const channel=supabase.channel(`convergence:team:${realtimeKey}`)
+    .on('broadcast',{event:'state_changed'},()=>callback())
+    .subscribe();
+  return ()=>{void supabase.removeChannel(channel);};
+}
