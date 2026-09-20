@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { OrganizerLayout } from '../../layouts/OrganizerLayout';
 import {
   adminAssignSequence,
-  adminManualTeamAction,
   adminUpsertCheckpoint,
   adminUpsertPair,
   adminUpsertRouteItem,
