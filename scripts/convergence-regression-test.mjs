@@ -35,10 +35,6 @@ function advance(step, action) {
   return null;
 }
 
-const stage1 = ['HAND_IN','STICKER_1','STICKER_2','ANSWER_2','CHECKPOINT_1_QR','CHECKPOINT_1_CODE','SNIPPET_1'];
-const stage4 = ['RIDDLE_4','STICKER_4','STICKER_5','ANSWER_5','CHECKPOINT_2_QR','CHECKPOINT_2_CODE','SNIPPET_2'];
-const stage7 = ['RIDDLE_7','STICKER_7','CLUE_8','CLUE_9','FINAL_RIDDLE','TREASURE_FOUND'];
-
 let step = 'HAND_IN';
 for (const action of ['ACK_HANDIN','STICKER_CODE','STICKER_CODE','ANSWER','CHECKPOINT_QR','CHECKPOINT_CODE','SNIPPET']) {
   const next = advance(step, action);
