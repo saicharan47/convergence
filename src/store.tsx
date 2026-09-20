@@ -69,7 +69,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    let unsubscribeRealtime = () => undefined;
+    let unsubscribeRealtime: () => void = () => undefined;
     if (sessionToken) {
       void refresh();
       // Broadcast gives immediate updates; the polling loop is a recovery path for missed
