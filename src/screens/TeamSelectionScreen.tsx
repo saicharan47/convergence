@@ -6,6 +6,7 @@ import { authenticateTeamV2, listTrackTeams } from '../lib/db';
 import { useAppContext } from '../store';
 
 const TRACKS = ['A','B','C','D'] as const;
+const TRACK_META: Record<string,{color:string;name:string}> = { A:{color:'text-red-300 border-red-400/40',name:'RED'}, B:{color:'text-blue-300 border-blue-400/40',name:'BLUE'}, C:{color:'text-green-300 border-green-400/40',name:'GREEN'}, D:{color:'text-yellow-300 border-yellow-400/40',name:'YELLOW'} };
 
 export function TeamSelectionScreen() {
   const navigate = useNavigate();
@@ -55,7 +56,7 @@ export function TeamSelectionScreen() {
         ) : !teamId ? (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <div><p className="text-xs text-muted uppercase tracking-widest">Track {track}</p><h3 className="font-display text-xl text-offwhite uppercase tracking-wider">Choose Your Team</h3></div>
+              <div><p className={`text-xs uppercase tracking-widest ${TRACK_META[track]?.color.split(' ')[0] ?? 'text-gold'}`}>Track {track} · {TRACK_META[track]?.name}</p><h3 className="font-display text-xl text-offwhite uppercase tracking-wider">Choose Your Team</h3></div>
               <button onClick={() => setTrack(null)} className="text-xs text-gold uppercase tracking-wider">Change</button>
             </div>
             <div className="grid grid-cols-1 gap-2">
