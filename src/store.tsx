@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { getConvergenceState } from './lib/db';
+import { getConvergenceState, subscribeToConvergenceState } from './lib/db';
 import type { ConvergenceState } from './lib/db';
 
 export interface TeamProgress {
@@ -69,18 +69,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     };
 
+    let unsubscribeRealtime = () => undefined;
     if (sessionToken) {
       void refresh();
-      // Convergence control is authoritative. Poll independently of the legacy hunt system
-      // so MASTER START is reflected even when the old team-progress RPC is unavailable.
-      refreshInterval = window.setInterval(() => void refresh(), 2000);
+      // Broadcast gives immediate updates; the polling loop is a recovery path for missed
+      // WebSocket events and network reconnects.
+      if (realtimeKey) {
+        unsubscribeRealtime = subscribeToConvergenceState(realtimeKey, () => void refresh());
+      }
+      refreshInterval = window.setInterval(() => void refresh(), 5000);
     }
 
     return () => {
       cancelled = true;
+      unsubscribeRealtime();
       if (refreshInterval) window.clearInterval(refreshInterval);
     };
-  }, [sessionToken]);
+  }, [sessionToken, realtimeKey]);
 
   const setTeamLogin = (id: string, name: string, track: string, token: string, key: string) => {
     setTeamId(id);
