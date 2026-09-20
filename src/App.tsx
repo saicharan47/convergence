@@ -7,6 +7,7 @@ import { OrganizerLoginScreen } from './screens/organizer/OrganizerLoginScreen';
 import { OrganizerDashboardScreen } from './screens/organizer/OrganizerDashboardScreen';
 import { ClueManagementScreen } from './screens/organizer/ClueManagementScreen';
 import { OrganizerLeaderboardScreen } from './screens/organizer/OrganizerLeaderboardScreen';
+import { ConvergenceStudioScreen } from './screens/organizer/ConvergenceStudioScreen';
 import { ParticipantTeamsManagerScreen } from './screens/organizer/ParticipantTeamsManagerScreen';
 import { ConvergenceControlScreen } from './screens/organizer/ConvergenceControlScreen';
 import { OrganizerGuard } from './components/OrganizerGuard';
@@ -26,6 +27,7 @@ function AppRoutes() {
         <Route path="/organizer" element={<OrganizerLoginScreen />} />
         <Route path="/organizer/dashboard" element={<OrganizerGuard><OrganizerDashboardScreen /></OrganizerGuard>} />
         <Route path="/organizer/control" element={<OrganizerGuard><ConvergenceControlScreen /></OrganizerGuard>} />
+        <Route path="/organizer/studio" element={<OrganizerGuard><ConvergenceStudioScreen /></OrganizerGuard>} />
         <Route path="/organizer/teams" element={<OrganizerGuard><ParticipantTeamsManagerScreen /></OrganizerGuard>} />
         <Route path="/organizer/clues" element={<OrganizerGuard><ClueManagementScreen /></OrganizerGuard>} />
         <Route path="/organizer/leaderboard" element={<OrganizerGuard><OrganizerLeaderboardScreen /></OrganizerGuard>} />
