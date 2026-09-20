@@ -5,7 +5,9 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { useAppContext } from '../store';
 import { recordConvergenceViolation, verifyConvergenceAction } from '../lib/db';
 
-const TRACK_STYLES: Record<string,string> = { A:'text-red-300 border-red-400/30 bg-red-500/5', B:'text-blue-300 border-blue-400/30 bg-blue-500/5', C:'text-green-300 border-green-400/30 bg-green-500/5', D:'text-yellow-300 border-yellow-400/30 bg-yellow-500/5' };\n\nfunction label(step:string) {
+const TRACK_STYLES: Record<string,string> = { A:'text-red-300 border-red-400/30 bg-red-500/5', B:'text-blue-300 border-blue-400/30 bg-blue-500/5', C:'text-green-300 border-green-400/30 bg-green-500/5', D:'text-yellow-300 border-yellow-400/30 bg-yellow-500/5' };
+
+function label(step:string) {
   return step.replaceAll('_',' ').replace('ANSWER 2','7-DIGIT ANSWER').replace('ANSWER 5','7-DIGIT ANSWER').replace('CHECKPOINT 1 QR','CHECKPOINT 1').replace('CHECKPOINT 2 QR','CHECKPOINT 2');
 }
 function expectedLength(step:string) {
