@@ -329,9 +329,7 @@ begin
     if cp.id is not null then content=jsonb_build_object('step',s.current_step,'title','Code Snippet','body',cp.snippet); end if;
   end if;
   select * into pair from public.convergence_team_pairs where team_id=tid;
-  if s.current_step='CLUE_8' and pair.team_id is not null then
-    content=jsonb_build_object('step','CLUE_8','title','Clue 8','body',pair.logical_clue,'sticker_image_url',pair.sticker_image_url,'physical_location',pair.physical_location,'pair_key',pair.pair_key);
-  end if;
+  if s.current_step='CLUE_8' and pair.team_id is not null then content=jsonb_build_object('step','CLUE_8','title','Clue 8','body',pair.logical_clue,'sticker_image_url',pair.sticker_image_url,'physical_location',pair.physical_location,'pair_key',pair.pair_key); end if;
   if s.current_step='CLUE_9' then
     select * into r1 from public.convergence_route_items where team_id=tid and step_key='CLUE_9' and published=true;
     if r1.team_id is not null then content=jsonb_build_object('step','CLUE_9','title',r1.title,'body',r1.body,'instruction',r1.instruction,'clue_image_url',r1.clue_image_url,'physical_location',r1.physical_location,'metadata',r1.metadata); end if;
@@ -341,6 +339,10 @@ begin
     content=coalesce(seq->'final_riddle',content);
   end if;
   return jsonb_build_object('team_id',t.id,'name',t.name,'track_id',t.track_id,'status',s.status,'stage',g.current_stage,'step',s.current_step,'warnings',s.warnings,'game_running',g.running,'stage_started_at',g.stage_started_at,'started_at',s.started_at,'paused_at',s.paused_at,'completed_at',s.completed_at,'buffer_active',g.buffer_active,'buffer_started_at',g.buffer_started_at,'buffer_ends_at',g.buffer_ends_at,'server_now',ts,'content',content);
+exception when others then
+  select * into t from public.teams where id=tid; select * into s from public.convergence_team_state where team_id=tid; select * into g from public.convergence_game_control where id=1;
+  if t.id is null or s.team_id is null or g.id is null then return null; end if;
+  return jsonb_build_object('team_id',t.id,'name',t.name,'track_id',t.track_id,'status',s.status,'stage',g.current_stage,'step',s.current_step,'warnings',s.warnings,'game_running',g.running,'stage_started_at',g.stage_started_at,'started_at',s.started_at,'paused_at',s.paused_at,'completed_at',s.completed_at,'buffer_active',coalesce(g.buffer_active,false),'buffer_started_at',g.buffer_started_at,'buffer_ends_at',g.buffer_ends_at,'server_now',clock_timestamp(),'content',null);
 end $function$;
 
 drop trigger if exists convergence_team_state_realtime on public.convergence_team_state;
