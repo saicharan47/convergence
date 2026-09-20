@@ -102,6 +102,20 @@ export function ConvergenceStudioScreen() {
     setMessage('Pair saved.');
   });
 
+  const downloadCsv=async()=>{
+    setBusy(true);
+    try{
+      const data=await exportConvergenceConfig();
+      const routes=Array.isArray(data.routes)?data.routes as Array<Record<string,unknown>>:[];
+      const header=['team_id','step_key','title','body','instruction','physical_location','code','answer','published'];
+      const esc=(v:unknown)=>'"'+String(v??'').replaceAll('"','""').replaceAll('\\n',' ')+'"';
+      const csv=[header.join(','),...routes.map(r=>header.map(h=>esc(r[h])).join(','))].join('\\n');
+      const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+      const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='convergence-routes.csv'; a.click(); URL.revokeObjectURL(url);
+      setMessage('Route CSV exported.');
+    }catch(e){setMessage(e instanceof Error?e.message:'CSV export failed.');}finally{setBusy(false);}
+  };
+
   const downloadExport=async()=>{setBusy(true);try{const data=await exportConvergenceConfig();const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='convergence-config.json';a.click();URL.revokeObjectURL(url);setMessage('Configuration exported.');}catch(e){setMessage(e instanceof Error?e.message:'Export failed.');}finally{setBusy(false);}};
   const importConfig=()=>run(async()=>{const data=JSON.parse(importText) as Record<string,unknown>;await importConvergenceConfig(data);setMessage('Configuration imported.');});
   const makeTest=()=>run(async()=>{const c=await createConvergenceTestFixture();setTestCreds({team_name:c.team_name,password:c.password});setMessage('Isolated TEST track fixture created. Use it only for rehearsal.');});
@@ -165,7 +179,7 @@ export function ConvergenceStudioScreen() {
 
       {tab==='data'&&<section className="bg-[#111] border border-gray-800 rounded p-5 space-y-4">
         <h3 className="text-white font-semibold">Import / Export</h3><p className="text-xs text-gray-500">Export contains organizer-only content including configured codes/answers. Keep the file private.</p>
-        <button disabled={busy} onClick={()=>void downloadExport()} className="bg-gold text-black px-4 py-2 rounded text-sm font-semibold">Export JSON</button>
+        <div className="flex flex-wrap gap-2"><button disabled={busy} onClick={()=>void downloadExport()} className="bg-gold text-black px-4 py-2 rounded text-sm font-semibold">Export JSON</button><button disabled={busy} onClick={()=>void downloadCsv()} className="border border-gray-700 text-gray-300 px-4 py-2 rounded text-sm">Export Routes CSV</button></div>
         <textarea value={importText} onChange={e=>setImportText(e.target.value)} rows={14} placeholder="Paste a Convergence config JSON export here…" className="w-full bg-[#171717] border border-gray-700 rounded p-3 text-white font-mono text-xs"/>
         <button disabled={busy||!importText.trim()} onClick={()=>void importConfig()} className="border border-gold/40 text-gold px-4 py-2 rounded text-sm">Import JSON</button>
       </section>}
