@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.verify_convergence_action_core_legacy(p_token text, p_action text, p_value text DEFAULT NULL::text)
+CREATE OR REPLACE FUNCTION public.verify_convergence_action_core(p_token text, p_action text, p_value text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
