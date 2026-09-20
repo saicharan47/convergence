@@ -20,7 +20,7 @@ begin
   return attempts<=10;
 end $function$;
 
-alter function public.verify_convergence_action_core(text,text,text) rename to verify_convergence_action_core_legacy;
+drop function if exists public.verify_convergence_action_core_legacy(text,text,text);\nalter function public.verify_convergence_action_core(text,text,text) rename to verify_convergence_action_core_legacy;
 
 create or replace function public.verify_convergence_action_core(p_token text,p_action text,p_value text default null)
 returns jsonb language plpgsql security definer set search_path=''
