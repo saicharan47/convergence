@@ -447,3 +447,65 @@ begin
  delete from public.convergence_team_clue_history;
  return true;
 end $$;
+
+
+create or replace function public.convergence_admin_move_team_position(p_team_id uuid,p_new_position integer)
+returns jsonb language plpgsql security definer set search_path=''
+as $$
+declare tr text;ids uuid[];idx integer;target integer;i integer;ts timestamptz:=clock_timestamp();tid uuid;
+begin
+ if not(select private.is_organizer()) then raise exception 'organizer access required';end if;
+ select t.track_id into tr from public.teams t join public.convergence_team_state s on s.team_id=t.id where t.id=p_team_id and s.status<>'ELIMINATED';
+ if tr is null then raise exception 'team is not an active A-D team';end if;
+ perform pg_advisory_xact_lock(hashtext('convergence-position-'||tr));
+ select array_agg(s.team_id order by s.current_position,t.original_team_number,t.id) into ids from public.teams t join public.convergence_team_state s on s.team_id=t.id where t.track_id=tr and s.status<>'ELIMINATED';
+ if p_new_position<1 or p_new_position>coalesce(array_length(ids,1),0) then raise exception 'position outside active track range';end if;
+ idx:=array_position(ids,p_team_id);if idx is null then raise exception 'team not found in active order';end if;
+ ids:=array_remove(ids,p_team_id);target:=least(p_new_position,array_length(ids,1)+1);
+ if target=1 then ids:=array_prepend(p_team_id,ids);elsif target>array_length(ids,1) then ids:=array_append(ids,p_team_id);else ids:=ids[1:target-1]||array[p_team_id]::uuid[]||ids[target:];end if;
+ for i in 1..array_length(ids,1) loop tid:=ids[i];update public.teams set current_position=i where id=tid;update public.convergence_team_state set current_position=i,updated_at=ts where team_id=tid;end loop;
+ perform public.convergence_audit_event(p_team_id,'MANUAL_POSITION_OVERRIDE',null,tr,jsonb_build_object('new_position',p_new_position,'timestamp',ts));
+ return jsonb_build_object('ok',true,'team_id',p_team_id,'track_id',tr,'position',p_new_position,'timestamp',ts);
+end $$;
+revoke execute on function public.convergence_admin_move_team_position(uuid,integer) from public,anon;
+grant execute on function public.convergence_admin_move_team_position(uuid,integer) to authenticated;
+
+create or replace function public.convergence_admin_restore_team(p_team_id uuid)
+returns jsonb language plpgsql security definer set search_path=''
+as $$
+declare tr text;maxpos integer;phase integer;newclue integer;newstep text;ts timestamptz:=clock_timestamp();
+begin
+ if not(select private.is_organizer()) then raise exception 'organizer access required';end if;
+ select t.track_id into tr from public.teams t where t.id=p_team_id;
+ if tr not in('A','B','C','D') then raise exception 'only A-D teams can be restored';end if;
+ select coalesce(max(s.current_position),0)+1 into maxpos from public.teams t join public.convergence_team_state s on s.team_id=t.id where t.track_id=tr and s.status<>'ELIMINATED';
+ select current_stage into phase from public.convergence_game_control where id=1;
+ if phase=1 then newstep:='CHECKPOINT_1_WAIT';newclue:=3;elsif phase=2 then newstep:='TRANSITION_1';newclue:=4;else newstep:='TRANSITION_2';newclue:=7;end if;
+ update public.teams set current_position=maxpos where id=p_team_id;
+ update public.convergence_team_state set status='ACTIVE',current_position=maxpos,current_step=newstep,current_clue=newclue,current_sticker_id=null,paused_at=null,updated_at=ts where team_id=p_team_id;
+ perform public.convergence_record_clue_history(p_team_id,phase,maxpos,newclue,null,'ACTIVE','ADMIN_RESTORE',null,jsonb_build_object('timestamp',ts));
+ perform public.convergence_audit_event(p_team_id,'ADMIN_RESTORE_TEAM',phase,tr,jsonb_build_object('position',maxpos,'timestamp',ts));
+ return jsonb_build_object('ok',true,'team_id',p_team_id,'position',maxpos,'step',newstep,'timestamp',ts);
+end $$;
+revoke execute on function public.convergence_admin_restore_team(uuid) from public,anon;
+grant execute on function public.convergence_admin_restore_team(uuid) to authenticated;
+
+create or replace function public.convergence_admin_reopen_checkpoint(p_checkpoint integer)
+returns jsonb language plpgsql security definer set search_path=''
+as $$
+declare ts timestamptz:=clock_timestamp();st integer;step text;clue integer;
+begin
+ if not(select private.is_organizer()) then raise exception 'organizer access required';end if;
+ if p_checkpoint not in(1,2) then raise exception 'checkpoint must be 1 or 2';end if;
+ st:=case when p_checkpoint=1 then 1 else 2 end;step:=case when p_checkpoint=1 then 'CHECKPOINT_1_WAIT' else 'CHECKPOINT_2_WAIT' end;clue:=case when p_checkpoint=1 then 3 else 6 end;
+ perform pg_advisory_xact_lock(hashtext('convergence-checkpoint-reopen-'||p_checkpoint::text));
+ update public.convergence_game_control set current_stage=st,running=false,stage_started_at=null,updated_at=ts where id=1;
+ update public.convergence_team_state set status='PAUSED',current_step=step,current_clue=clue,current_sticker_id=null,stage3_rank=null,stage6_rank=null,clue9_rank=null,paused_at=ts,updated_at=ts where team_id in(select id from public.teams where track_id in('A','B','C','D'));
+ update public.teams set current_position=original_team_number where track_id in('A','B','C','D') and original_team_number is not null;
+ perform public.convergence_recalculate_track_positions('A');perform public.convergence_recalculate_track_positions('B');perform public.convergence_recalculate_track_positions('C');perform public.convergence_recalculate_track_positions('D');
+ if p_checkpoint=2 then delete from public.convergence_clue9_claims;end if;
+ perform public.convergence_audit_event(null,'CHECKPOINT_REOPENED',p_checkpoint,case when p_checkpoint=1 then 'CHECKPOINT_1' else 'CHECKPOINT_2' end,jsonb_build_object('timestamp',ts));
+ return jsonb_build_object('ok',true,'checkpoint',p_checkpoint,'stage',st,'running',false,'timestamp',ts);
+end $$;
+revoke execute on function public.convergence_admin_reopen_checkpoint(integer) from public,anon;
+grant execute on function public.convergence_admin_reopen_checkpoint(integer) to authenticated;
