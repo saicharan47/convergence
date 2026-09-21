@@ -99,6 +99,9 @@ export interface ConvergenceState {
   buffer_started_at: string | null;
   buffer_ends_at: string | null;
   server_now: string;
+  current_position?: number | null;
+  current_clue?: number | null;
+  current_sticker_id?: string | null;
   content?: ConvergenceContent | null;
 }
 export async function listTrackTeams(trackId: string): Promise<Array<{id:string;name:string}>> {
@@ -193,4 +196,64 @@ export function subscribeToConvergenceState(realtimeKey:string,callback:()=>void
     .on('broadcast',{event:'state_changed'},()=>callback())
     .subscribe();
   return ()=>{void supabase.removeChannel(channel);};
+}
+
+
+export interface PositionAssignment {
+  id:string; track_id:string; stage_group:number; position:number; clue_number:number;
+  title:string; body:string; instruction:string; physical_location:string|null;
+  sticker_id:string|null; sticker_image_url:string|null; code_plaintext?:string|null;
+  answer_plaintext?:string|null; metadata:Record<string,unknown>; published:boolean;
+}
+export async function getPositionAssignments(trackId?:string|null,stageGroup?:number|null,position?:number|null):Promise<PositionAssignment[]> {
+  const {data,error}=await supabase.rpc('convergence_admin_list_position_assignments',{p_track_id:trackId??null,p_stage_group:stageGroup??null,p_position:position??null});
+  if(error)throw error; return (data??[]) as PositionAssignment[];
+}
+export async function adminUpsertPositionAssignment(input:{
+  trackId:string;stageGroup:number;position:number;clueNumber:number;title:string;body:string;instruction:string;
+  physicalLocation?:string;stickerId?:string|null;stickerImageUrl?:string;code?:string;answer?:string;
+  metadata?:Record<string,unknown>;published?:boolean;
+}) {
+  const {data,error}=await supabase.rpc('convergence_admin_upsert_position_assignment',{
+    p_track_id:input.trackId,p_stage_group:input.stageGroup,p_position:input.position,p_clue_number:input.clueNumber,
+    p_title:input.title,p_body:input.body,p_instruction:input.instruction,p_physical_location:input.physicalLocation??null,
+    p_sticker_id:input.stickerId??null,p_sticker_image_url:input.stickerImageUrl??null,p_code:input.code??null,
+    p_answer:input.answer??null,p_metadata:input.metadata??{},p_published:input.published??false
+  });
+  if(error)throw error; return data as string;
+}
+export interface ConvergenceSticker { id:string; sticker_name:string; image_url:string|null; clue_number:number; stage_group:number; active:boolean; updated_at:string; }
+export async function getConvergenceStickers():Promise<ConvergenceSticker[]> {
+  const {data,error}=await supabase.rpc('convergence_admin_list_stickers'); if(error)throw error; return (data??[]) as ConvergenceSticker[];
+}
+export async function uploadConvergenceSticker(file:File,stickerName:string,clueNumber:number,stageGroup:number):Promise<ConvergenceSticker> {
+  const ext=file.name.split('.').pop()?.toLowerCase()||'png';
+  const path=\`clue-\${clueNumber}/\${crypto.randomUUID()}.\${ext}\`;
+  const {error}=await supabase.storage.from('convergence-stickers').upload(path,file,{contentType:file.type||'image/png',cacheControl:'3600',upsert:false});
+  if(error)throw error;
+  const {data:{publicUrl}}=supabase.storage.from('convergence-stickers').getPublicUrl(path);
+  const {data,error:insertError}=await supabase.from('convergence_stickers').insert({
+    sticker_name:stickerName||file.name,image_url:publicUrl,clue_number:clueNumber,stage_group:stageGroup,active:true
+  }).select('id,sticker_name,image_url,clue_number,stage_group,active,updated_at').single();
+  if(insertError)throw insertError; return data as ConvergenceSticker;
+}
+export async function getCheckpointReview(checkpoint:number):Promise<Array<Record<string,unknown>>> {
+  const {data,error}=await supabase.rpc('convergence_admin_list_checkpoint_review',{p_checkpoint:checkpoint}); if(error)throw error; return (data??[]) as Array<Record<string,unknown>>;
+}
+export async function finalizeConvergenceCheckpoint(checkpoint:number,teamIds:string[]) {
+  const {data,error}=await supabase.rpc('convergence_admin_finalize_checkpoint',{p_checkpoint:checkpoint,p_eliminated_team_ids:teamIds});
+  if(error)throw error; return data as {ok:boolean;checkpoint:number;eliminated:number;active:number;next_stage:number;timestamp:string};
+}
+export async function getTransitionRiddles():Promise<Array<{checkpoint_number:number;riddle_text:string;active:boolean}>> {
+  const {data,error}=await supabase.rpc('convergence_admin_get_transition_riddles');if(error)throw error;return (data??[]) as Array<{checkpoint_number:number;riddle_text:string;active:boolean}>;
+}
+export async function setTransitionRiddle(checkpoint:number,riddleText:string,active=true){
+  const {error}=await supabase.rpc('convergence_admin_set_transition_riddle',{p_checkpoint:checkpoint,p_riddle_text:riddleText,p_active:active});if(error)throw error;
+}
+export async function setCommonClue9(input:{title:string;body:string;instruction:string;location:string;code?:string;stickerId?:string|null;stickerImageUrl?:string}){
+  const {error}=await supabase.rpc('convergence_admin_set_common_clue9',{p_title:input.title,p_body:input.body,p_instruction:input.instruction,p_location:input.location,p_code:input.code??null,p_sticker_id:input.stickerId??null,p_sticker_image_url:input.stickerImageUrl??null});if(error)throw error;
+}
+export async function getConvergenceTeamHistory(teamId:string){
+  const {data,error}=await supabase.from('convergence_team_clue_history').select('id,stage_group,position_at_time,clue_number,sticker_id,status,event_type,assigned_at,completed_at,details').eq('team_id',teamId).order('assigned_at',{ascending:true});
+  if(error)throw error; return data??[];
 }
