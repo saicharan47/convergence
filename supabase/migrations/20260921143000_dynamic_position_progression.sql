@@ -509,3 +509,24 @@ begin
 end $$;
 revoke execute on function public.convergence_admin_reopen_checkpoint(integer) from public,anon;
 grant execute on function public.convergence_admin_reopen_checkpoint(integer) to authenticated;
+
+
+create or replace function public.verify_convergence_action_core(p_token text,p_action text,p_value text default null)
+returns jsonb language plpgsql security definer set search_path=''
+as $$
+declare tid uuid;result jsonb;next_step text;
+begin
+ tid:=public.convergence_team_from_token(p_token);
+ if tid is null then return jsonb_build_object('ok',false,'reason','invalid_session');end if;
+ if not public.convergence_rate_limit_check(tid) then return jsonb_build_object('ok',false,'reason','rate_limited','retry_after_seconds',10);end if;
+ result:=public.verify_convergence_action_core_legacy(p_token,p_action,p_value);
+ if coalesce(result->>'ok','false')='true' and p_action='CHECKPOINT_CODE' then
+   next_step:=result->>'next_step';
+   if next_step is not null then
+     update public.convergence_team_state set current_step=next_step,last_action_at=clock_timestamp(),updated_at=clock_timestamp() where team_id=tid;
+   end if;
+ end if;
+ return result;
+end $$;
+revoke execute on function public.verify_convergence_action_core(text,text,text) from public,anon;
+grant execute on function public.verify_convergence_action_core(text,text,text) to public;
