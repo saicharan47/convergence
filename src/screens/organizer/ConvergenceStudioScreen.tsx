@@ -4,7 +4,7 @@ import {
   adminAssignSequence, adminUpsertPair, adminUpsertPositionAssignment,
   createConvergenceTestFixture, deleteConvergenceSequence, exportConvergenceConfig,
   finalizeConvergenceCheckpoint, getCheckpointReview, getConvergenceAdminDashboard,
-  getConvergenceCheckpoints, getConvergencePairs, getConvergenceSequences, getConvergenceStickers,
+  getConvergencePairs, getConvergenceSequences, getConvergenceStickers,
   getConvergenceTeamHistory, getPositionAssignments, getTransitionRiddles, importConvergenceConfig,
   publishConvergenceSequence, setCommonClue9, setTransitionRiddle, uploadConvergenceSticker,
   upsertConvergenceSequence, type ConvergenceSequence, type ConvergenceSticker, type PositionAssignment
@@ -36,7 +36,6 @@ export function ConvergenceStudioScreen() {
   const [clue,setClue]=useState(1);
   const [assignments,setAssignments]=useState<PositionAssignment[]>([]);
   const [assignment,setAssignment]=useState({title:'',body:'',instruction:'',physicalLocation:'',stickerId:'',stickerImageUrl:'',code:'',answer:'',published:false});
-  const [checkpoints,setCheckpoints]=useState<Array<{id:string;stage:number;track_id:string;qr_label:string|null;active:boolean;qr_token:string|null;checkpoint_code:string|null;snippet:string;snippet_answer:string|null}>>([]);
   const [checkpoint,setCheckpoint]=useState(1);
   const [review,setReview]=useState<Array<Record<string,unknown>>>([]);
   const [selectedEliminations,setSelectedEliminations]=useState<string[]>([]);
@@ -65,7 +64,6 @@ export function ConvergenceStudioScreen() {
     const data=await getConvergenceAdminDashboard();
     setTeams(data.teams as unknown as Team[]);
     setSequences(await getConvergenceSequences());
-    setCheckpoints(await getConvergenceCheckpoints());
     setPairs(await getConvergencePairs());
     setStickers(await getConvergenceStickers());
     const rs=await getTransitionRiddles();
@@ -134,7 +132,6 @@ export function ConvergenceStudioScreen() {
   });
 
   const saveSequence=()=>run(async()=>{const payload=JSON.parse(sequenceJson) as Record<string,unknown>;const id=await upsertConvergenceSequence(sequenceId,sequenceName,payload);setSequenceId(id);setMessage('Sequence saved as draft.');});
-  const saveCheckpoint=()=>run(async()=>{await adminUpsertCheckpoint({stage:Number(checkpoint===1?3:6),trackId:track,qrToken:'',checkpointCode:'',snippet:'',snippetAnswer:'',qrLabel:'',active:true});setMessage('Use the checkpoint configuration controls below for QR/code/snippet data.');});
   const savePair=()=>run(async()=>{if(!pair.teamId)throw new Error('Select a team.');await adminUpsertPair(pair);setMessage('Pair saved.');});
   const downloadCsv=async()=>{setBusy(true);try{const data=await exportConvergenceConfig();const routes=Array.isArray(data.routes)?data.routes as Array<Record<string,unknown>>:[];const header=['team_id','step_key','title','body','instruction','physical_location','code','answer','published'];const esc=(v:unknown)=>'"'+String(v??'').replaceAll('"','""').replaceAll('\\n',' ')+'"';const csv=[header.join(','),...routes.map(r=>header.map(h=>esc(r[h])).join(','))].join('\\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='convergence-routes.csv';a.click();URL.revokeObjectURL(url);}finally{setBusy(false);}};
   const downloadExport=async()=>{setBusy(true);try{const data=await exportConvergenceConfig();const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='convergence-config.json';a.click();URL.revokeObjectURL(url);}finally{setBusy(false);}};
