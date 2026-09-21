@@ -232,9 +232,7 @@ export async function uploadConvergenceSticker(file:File,stickerName:string,clue
   const {error}=await supabase.storage.from('convergence-stickers').upload(path,file,{contentType:file.type||'image/png',cacheControl:'3600',upsert:false});
   if(error)throw error;
   const {data:{publicUrl}}=supabase.storage.from('convergence-stickers').getPublicUrl(path);
-  const {data,error:insertError}=await supabase.from('convergence_stickers').insert({
-    sticker_name:stickerName||file.name,image_url:publicUrl,clue_number:clueNumber,stage_group:stageGroup,active:true
-  }).select('id,sticker_name,image_url,clue_number,stage_group,active,updated_at').single();
+  const {data,error:insertError}=await supabase.rpc('convergence_admin_create_sticker',{p_sticker_name:stickerName||file.name,p_image_url:publicUrl,p_clue_number:clueNumber,p_stage_group:stageGroup,p_active:true});
   if(insertError)throw insertError; return data as ConvergenceSticker;
 }
 export async function getCheckpointReview(checkpoint:number):Promise<Array<Record<string,unknown>>> {
@@ -253,7 +251,4 @@ export async function setTransitionRiddle(checkpoint:number,riddleText:string,ac
 export async function setCommonClue9(input:{title:string;body:string;instruction:string;location:string;code?:string;stickerId?:string|null;stickerImageUrl?:string}){
   const {error}=await supabase.rpc('convergence_admin_set_common_clue9',{p_title:input.title,p_body:input.body,p_instruction:input.instruction,p_location:input.location,p_code:input.code??null,p_sticker_id:input.stickerId??null,p_sticker_image_url:input.stickerImageUrl??null});if(error)throw error;
 }
-export async function getConvergenceTeamHistory(teamId:string){
-  const {data,error}=await supabase.from('convergence_team_clue_history').select('id,stage_group,position_at_time,clue_number,sticker_id,status,event_type,assigned_at,completed_at,details').eq('team_id',teamId).order('assigned_at',{ascending:true});
-  if(error)throw error; return data??[];
-}
+export async function getConvergenceTeamHistory(teamId:string){ const {data,error}=await supabase.rpc('convergence_admin_get_team_history',{p_team_id:teamId}); if(error)throw error; return (data??[]) as Array<Record<string,unknown>>; }
