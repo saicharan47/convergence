@@ -6,7 +6,7 @@ import { getConvergenceFlow } from '../../lib/convergenceFlow';
 
 const TRACKS = ['A', 'B', 'C', 'D'] as const;
 type TrackId = typeof TRACKS[number];
-interface TeamRow { id:string; name:string; track_id:string; status:string; stage:number; step:string; warnings:number; stage3_rank:number|null; stage6_rank:number|null; clue9_rank:number|null; started_at:string|null; completed_at:string|null; last_action_at:string|null; }
+interface TeamRow { id:string; name:string; track_id:string; status:string; stage:number; step:string; current_position:number|null; current_clue:number|null; warnings:number; stage3_rank:number|null; stage6_rank:number|null; clue9_rank:number|null; started_at:string|null; completed_at:string|null; last_action_at:string|null; }
 interface GameState { current_stage:number; running:boolean; stage_started_at:string|null; buffer_active:boolean; buffer_started_at:string|null; buffer_ends_at:string|null; server_now?:string; }
 function formatElapsed(startedAt:string|null, finishedAt?:string|null, now=Date.now()) { if(!startedAt)return '--:--:--.---'; const start=new Date(startedAt).getTime(); const end=finishedAt?new Date(finishedAt).getTime():now; const total=Math.max(0,end-start); const h=Math.floor(total/3600000); const m=Math.floor((total%3600000)/60000); const s=Math.floor((total%60000)/1000); const ms=total%1000; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(ms).padStart(3,'0')}`; }
 function formatTimestamp(value:string|null){ if(!value)return '—'; return new Date(value).toLocaleTimeString([], {hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit',fractionalSecondDigits:3}); }
