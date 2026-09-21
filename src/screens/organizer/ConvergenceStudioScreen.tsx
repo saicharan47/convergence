@@ -40,7 +40,6 @@ export function ConvergenceStudioScreen() {
   const [checkpoint,setCheckpoint]=useState(1);
   const [review,setReview]=useState<Array<Record<string,unknown>>>([]);
   const [selectedEliminations,setSelectedEliminations]=useState<string[]>([]);
-  const [riddles,setRiddles]=useState<Array<{checkpoint_number:number;riddle_text:string;active:boolean}>>([]);
   const [riddle1,setRiddle1]=useState('');
   const [riddle2,setRiddle2]=useState('');
   const [common9,setCommon9]=useState({title:'CLUE 9 — COMMON TREASURE',body:'',instruction:'',location:'',code:'',stickerId:'',stickerImageUrl:''});
@@ -69,7 +68,7 @@ export function ConvergenceStudioScreen() {
     setCheckpoints(await getConvergenceCheckpoints());
     setPairs(await getConvergencePairs());
     setStickers(await getConvergenceStickers());
-    const rs=await getTransitionRiddles(); setRiddles(rs);
+    const rs=await getTransitionRiddles();
     setRiddle1(rs.find(r=>r.checkpoint_number===1)?.riddle_text??'');
     setRiddle2(rs.find(r=>r.checkpoint_number===2)?.riddle_text??'');
     const g=data.game as Record<string,unknown>;
