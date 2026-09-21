@@ -22,6 +22,7 @@ jobs:
       - name: Source integrity check
         run: |
           test -f src/screens/organizer/ConvergenceStudioScreen.tsx
+          test -f src/lib/convergenceFlow.ts
           test -f scripts/convergence-regression-test.mjs
           test -f supabase/migrations/20260920210000_convergence_spec_completion.sql
           test -f supabase/migrations/20260920220000_convergence_rate_limit_atomic_window.sql
