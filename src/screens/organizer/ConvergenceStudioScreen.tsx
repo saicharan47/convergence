@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { OrganizerLayout } from '../../layouts/OrganizerLayout';
 import {
-  adminAssignSequence, adminUpsertCheckpoint, adminUpsertPair, adminUpsertPositionAssignment,
+  adminAssignSequence, adminUpsertPair, adminUpsertPositionAssignment,
   createConvergenceTestFixture, deleteConvergenceSequence, exportConvergenceConfig,
   finalizeConvergenceCheckpoint, getCheckpointReview, getConvergenceAdminDashboard,
   getConvergenceCheckpoints, getConvergencePairs, getConvergenceSequences, getConvergenceStickers,
