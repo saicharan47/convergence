@@ -432,3 +432,18 @@ drop policy if exists "convergence stickers organizer update" on storage.objects
 create policy "convergence stickers organizer update" on storage.objects for update to authenticated using(bucket_id='convergence-stickers' and(select private.is_organizer())) with check(bucket_id='convergence-stickers' and(select private.is_organizer()));
 drop policy if exists "convergence stickers organizer delete" on storage.objects;
 create policy "convergence stickers organizer delete" on storage.objects for delete to authenticated using(bucket_id='convergence-stickers' and(select private.is_organizer()));
+
+
+create or replace function public.reset_global_hunt() returns boolean
+language plpgsql security definer set search_path=''
+as $$
+declare ts timestamptz:=clock_timestamp();
+begin
+ if not(select private.is_organizer()) then raise exception 'organizer access required';end if;
+ update public.convergence_game_control set current_stage=1,running=false,stage_started_at=null,buffer_active=false,buffer_started_at=null,buffer_ends_at=null,updated_at=ts where id=1;
+ update public.teams set current_position=original_team_number where track_id in('A','B','C','D') and original_team_number is not null;
+ update public.convergence_team_state s set current_step='HAND_IN',current_clue=1,status='WAITING',warnings=0,stage3_rank=null,stage6_rank=null,clue9_rank=null,started_at=null,paused_at=null,completed_at=null,last_action_at=null,current_position=t.current_position,current_sticker_id=null,checkpoint1_completed_at=null,checkpoint2_completed_at=null,updated_at=ts from public.teams t where t.id=s.team_id;
+ delete from public.convergence_clue9_claims;
+ delete from public.convergence_team_clue_history;
+ return true;
+end $$;
