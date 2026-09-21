@@ -103,7 +103,7 @@ export function ConvergenceStudioScreen() {
       instruction:assignment.instruction,physicalLocation:assignment.physicalLocation,stickerId:assignment.stickerId||null,
       stickerImageUrl:assignment.stickerImageUrl,code:assignment.code,answer:assignment.answer,published:assignment.published
     });
-    setMessage(\`Track \${track} Position \${position} → Clue \${clue} saved.\`);
+    setMessage(`Track ${track} Position ${position} → Clue ${clue} saved.`);
   });
 
   const loadReview=async()=>{
@@ -119,10 +119,10 @@ export function ConvergenceStudioScreen() {
   };
   const finalize=()=>run(async()=>{
     if(!canFinalize)throw new Error('Select exactly 5 teams in every track.');
-    if(!window.confirm(\`Finalize Checkpoint \${checkpoint}? This permanently eliminates the selected 20 teams and recalculates every remaining position.\`))return;
+    if(!window.confirm(`Finalize Checkpoint ${checkpoint}? This permanently eliminates the selected 20 teams and recalculates every remaining position.`))return;
     await finalizeConvergenceCheckpoint(checkpoint,selectedEliminations);
     setSelectedEliminations([]);
-    setMessage(\`Checkpoint \${checkpoint} finalized. Remaining teams were repositioned automatically.\`);
+    setMessage(`Checkpoint ${checkpoint} finalized. Remaining teams were repositioned automatically.`);
   });
 
   const saveRiddles=()=>run(async()=>{await setTransitionRiddle(1,riddle1,true);await setTransitionRiddle(2,riddle2,true);setMessage('Transition riddles saved.');});
@@ -146,7 +146,7 @@ export function ConvergenceStudioScreen() {
   return <OrganizerLayout title="Convergence Studio">
     <div className="space-y-5">
       {message&&<div className="border border-gold/20 bg-gold/5 text-gold px-4 py-3 rounded text-sm">{message}</div>}
-      <div className="flex flex-wrap gap-2">{(['positions','checkpoints','stickers','sequences','pairs','data','test'] as Tab[]).map(t=><button key={t} onClick={()=>setTab(t)} className={\`px-4 py-2 rounded border text-xs uppercase tracking-widest \${tab===t?'border-gold text-gold bg-gold/5':'border-gray-800 text-gray-500'}\`}>{t}</button>)}</div>
+      <div className="flex flex-wrap gap-2">{(['positions','checkpoints','stickers','sequences','pairs','data','test'] as Tab[]).map(t=><button key={t} onClick={()=>setTab(t)} className={`px-4 py-2 rounded border text-xs uppercase tracking-widest ${tab===t?'border-gold text-gold bg-gold/5':'border-gray-800 text-gray-500'}`}>{t}</button>)}</div>
 
       {tab==='positions'&&<section className="bg-[#111] border border-gray-800 rounded p-5 space-y-4">
         <div><h3 className="text-white font-semibold">Position-Based Clue & Sticker Assignment</h3><p className="text-xs text-gray-500 mt-1">Assignments belong to Track + current Position + Clue. Team IDs never own a clue assignment.</p></div>
@@ -173,9 +173,9 @@ export function ConvergenceStudioScreen() {
 
       {tab==='checkpoints'&&<section className="bg-[#111] border border-gray-800 rounded p-5 space-y-4">
         <div><h3 className="text-white font-semibold">Checkpoint Elimination Control</h3><p className="text-xs text-gray-500 mt-1">Select exactly 5 teams per track. The server locks the checkpoint, eliminates the selected teams, compresses positions and moves survivors to the transition riddle.</p></div>
-        <div className="flex flex-wrap gap-2"><button onClick={()=>setCheckpoint(1)} className={\`px-4 py-2 rounded border text-xs \${checkpoint===1?'border-gold text-gold':'border-gray-800 text-gray-500'}\`}>Checkpoint 1 · after Clue 3</button><button onClick={()=>setCheckpoint(2)} className={\`px-4 py-2 rounded border text-xs \${checkpoint===2?'border-gold text-gold':'border-gray-800 text-gray-500'}\`}>Checkpoint 2 · after Clue 6</button><button disabled={busy} onClick={()=>void loadReview()} className="border border-gray-700 text-gray-300 px-4 py-2 rounded text-xs">Refresh Review</button></div>
-        <div className="grid grid-cols-4 gap-2">{countByTrack.map(([t,n])=><div key={t} className={\`rounded border p-3 \${n===5?'border-green-800 text-green-300':'border-gray-800 text-gray-400'}\`}><div className={colors[t]}>Track {t}</div><div className="text-2xl font-mono mt-1">{n}/5</div></div>)}</div>
-        <div className="grid md:grid-cols-4 gap-3">{TRACKS.map(t=><div key={t} className="border border-gray-800 rounded p-3"><div className={\`text-xs font-semibold mb-2 \${colors[t]}\`}>TRACK {t}</div><div className="space-y-1">{review.filter(r=>r.track_id===t).map(r=>{const id=String(r.id);const selected=selectedEliminations.includes(id);return <button key={id} onClick={()=>toggleElimination(id)} disabled={busy || (!selected&&selectedEliminations.length>=20) || String(r.status)==='ELIMINATED'} className={\`w-full text-left px-2 py-2 rounded border text-xs \${selected?'border-red-700 bg-red-950/30 text-red-200':'border-gray-900 bg-black/20 text-gray-400'}\`}><div className="flex justify-between"><span>Pos {String(r.current_position??'—')} · {String(r.name)}</span><span>{selected?'ELIMINATE':String(r.status)}</span></div><div className="text-[9px] text-gray-600 mt-1">{r.current_step as string} · {r.checkpoint_complete?'READY':'NOT READY'}</div></button>})}</div></div>)}</div>
+        <div className="flex flex-wrap gap-2"><button onClick={()=>setCheckpoint(1)} className={`px-4 py-2 rounded border text-xs ${checkpoint===1?'border-gold text-gold':'border-gray-800 text-gray-500'}`}>Checkpoint 1 · after Clue 3</button><button onClick={()=>setCheckpoint(2)} className={`px-4 py-2 rounded border text-xs ${checkpoint===2?'border-gold text-gold':'border-gray-800 text-gray-500'}`}>Checkpoint 2 · after Clue 6</button><button disabled={busy} onClick={()=>void loadReview()} className="border border-gray-700 text-gray-300 px-4 py-2 rounded text-xs">Refresh Review</button></div>
+        <div className="grid grid-cols-4 gap-2">{countByTrack.map(([t,n])=><div key={t} className={`rounded border p-3 ${n===5?'border-green-800 text-green-300':'border-gray-800 text-gray-400'}`}><div className={colors[t]}>Track {t}</div><div className="text-2xl font-mono mt-1">{n}/5</div></div>)}</div>
+        <div className="grid md:grid-cols-4 gap-3">{TRACKS.map(t=><div key={t} className="border border-gray-800 rounded p-3"><div className={`text-xs font-semibold mb-2 ${colors[t]}`}>TRACK {t}</div><div className="space-y-1">{review.filter(r=>r.track_id===t).map(r=>{const id=String(r.id);const selected=selectedEliminations.includes(id);return <button key={id} onClick={()=>toggleElimination(id)} disabled={busy || (!selected&&selectedEliminations.length>=20) || String(r.status)==='ELIMINATED'} className={`w-full text-left px-2 py-2 rounded border text-xs ${selected?'border-red-700 bg-red-950/30 text-red-200':'border-gray-900 bg-black/20 text-gray-400'}`}><div className="flex justify-between"><span>Pos {String(r.current_position??'—')} · {String(r.name)}</span><span>{selected?'ELIMINATE':String(r.status)}</span></div><div className="text-[9px] text-gray-600 mt-1">{r.current_step as string} · {r.checkpoint_complete?'READY':'NOT READY'}</div></button>})}</div></div>)}</div>
         <button disabled={busy||!canFinalize} onClick={()=>void finalize()} className="bg-red-600 disabled:bg-gray-800 disabled:text-gray-600 text-white px-5 py-3 rounded text-sm font-semibold">Finalize Checkpoint {checkpoint} · Eliminate 20</button>
       </section>}
 
@@ -194,7 +194,7 @@ export function ConvergenceStudioScreen() {
       </section>}
 
       {tab==='sequences'&&<section className="bg-[#111] border border-gray-800 rounded p-5 space-y-4">
-        <div className="flex flex-wrap gap-2">{sequences.map(s=><button key={s.id} onClick={()=>{setSequenceId(s.id);setSequenceName(s.name);setSequenceJson(JSON.stringify(s.payload,null,2));}} className={\`px-3 py-2 rounded border text-xs \${sequenceId===s.id?'border-gold text-gold':'border-gray-800 text-gray-400'}\`}>{s.name} · {s.published?'PUBLISHED':'DRAFT'}</button>)}</div>
+        <div className="flex flex-wrap gap-2">{sequences.map(s=><button key={s.id} onClick={()=>{setSequenceId(s.id);setSequenceName(s.name);setSequenceJson(JSON.stringify(s.payload,null,2));}} className={`px-3 py-2 rounded border text-xs ${sequenceId===s.id?'border-gold text-gold':'border-gray-800 text-gray-400'}`}>{s.name} · {s.published?'PUBLISHED':'DRAFT'}</button>)}</div>
         <div className="grid md:grid-cols-[220px_1fr] gap-3"><Field label="Sequence name" value={sequenceName} onChange={setSequenceName}/><Field label="Sequence JSON" value={sequenceJson} onChange={setSequenceJson} rows={12} type="textarea"/></div>
         <div className="flex flex-wrap gap-2"><button disabled={busy||!sequenceName} onClick={()=>void saveSequence()} className="bg-gold text-black px-4 py-2 rounded text-sm font-semibold">Save</button>{sequenceId&&<><button disabled={busy} onClick={()=>void run(async()=>{await publishConvergenceSequence(sequenceId,!sequences.find(s=>s.id===sequenceId)?.published);})} className="border border-green-800 text-green-300 px-4 py-2 rounded text-sm">{sequences.find(s=>s.id===sequenceId)?.published?'Unpublish':'Publish'}</button><button disabled={busy} onClick={()=>void run(async()=>{await deleteConvergenceSequence(sequenceId);setSequenceId(null);})} className="border border-red-900 text-red-300 px-4 py-2 rounded text-sm">Delete</button></>}</div>
         <div className="grid md:grid-cols-2 gap-2">{teams.filter(t=>t.status==='PROMOTED').map(t=><div key={t.id} className="border border-gray-800 rounded p-3 flex items-center justify-between"><span className="text-sm text-white">{t.name} · {t.track_id}</span><button disabled={!sequenceId||busy||!sequences.find(s=>s.id===sequenceId)?.published} onClick={()=>void run(async()=>{await adminAssignSequence(t.id,sequenceId!);})} className="text-xs text-gold disabled:text-gray-700">Assign selected</button></div>)}</div>
