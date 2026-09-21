@@ -38,7 +38,7 @@ export function ConvergenceStudioScreen() {
   const [assignment,setAssignment]=useState({title:'',body:'',instruction:'',physicalLocation:'',stickerId:'',stickerImageUrl:'',code:'',answer:'',published:false});
   const [checkpoints,setCheckpoints]=useState<Array<{id:string;stage:number;track_id:string;qr_label:string|null;active:boolean;qr_token:string|null;checkpoint_code:string|null;snippet:string;snippet_answer:string|null}>>([]);
   const [checkpoint,setCheckpoint]=useState(1);
-  const [review,setReview]=useState<Array<Record<string,unknown>>[]>([]);
+  const [review,setReview]=useState<Array<Record<string,unknown>>>([]);
   const [selectedEliminations,setSelectedEliminations]=useState<string[]>([]);
   const [riddles,setRiddles]=useState<Array<{checkpoint_number:number;riddle_text:string;active:boolean}>>([]);
   const [riddle1,setRiddle1]=useState('');
@@ -56,7 +56,7 @@ export function ConvergenceStudioScreen() {
   const [pairs,setPairs]=useState<Array<{team_id:string;team_name:string;track_id:string;pair_key:string;logical_clue:string;sticker_image_url:string|null;physical_location:string|null;clue9_location:string|null}>>([]);
   const [pair,setPair]=useState({teamId:'',pairKey:'',logicalClue:'',stickerImageUrl:'',physicalLocation:'',clue9Location:''});
   const [historyTeam,setHistoryTeam]=useState('');
-  const [history,setHistory]=useState<Array<Record<string,unknown>>[]>([]);
+  const [history,setHistory]=useState<Array<Record<string,unknown>>>([]);
   const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState('');
   const [importText,setImportText]=useState('');
