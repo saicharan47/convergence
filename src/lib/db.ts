@@ -252,3 +252,7 @@ export async function setCommonClue9(input:{title:string;body:string;instruction
   const {error}=await supabase.rpc('convergence_admin_set_common_clue9',{p_title:input.title,p_body:input.body,p_instruction:input.instruction,p_location:input.location,p_code:input.code??null,p_sticker_id:input.stickerId??null,p_sticker_image_url:input.stickerImageUrl??null});if(error)throw error;
 }
 export async function getConvergenceTeamHistory(teamId:string){ const {data,error}=await supabase.rpc('convergence_admin_get_team_history',{p_team_id:teamId}); if(error)throw error; return (data??[]) as Array<Record<string,unknown>>; }
+
+export async function moveConvergenceTeamPosition(teamId:string,newPosition:number){const {data,error}=await supabase.rpc('convergence_admin_move_team_position',{p_team_id:teamId,p_new_position:newPosition});if(error)throw error;return data;}
+export async function restoreConvergenceTeam(teamId:string){const {data,error}=await supabase.rpc('convergence_admin_restore_team',{p_team_id:teamId});if(error)throw error;return data;}
+export async function reopenConvergenceCheckpoint(checkpoint:number){const {data,error}=await supabase.rpc('convergence_admin_reopen_checkpoint',{p_checkpoint:checkpoint});if(error)throw error;return data;}
