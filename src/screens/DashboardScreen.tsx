@@ -4,6 +4,7 @@ import { AppShell } from '../components/AppShell';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { useAppContext } from '../store';
 import { recordConvergenceViolation, verifyConvergenceAction } from '../lib/db';
+import { getConvergenceFlow } from '../lib/convergenceFlow';
 
 const TRACK_STYLES: Record<string,string> = { A:'text-red-300 border-red-400/30 bg-red-500/5', B:'text-blue-300 border-blue-400/30 bg-blue-500/5', C:'text-green-300 border-green-400/30 bg-green-500/5', D:'text-yellow-300 border-yellow-400/30 bg-yellow-500/5' };
 
@@ -26,6 +27,7 @@ export function DashboardScreen() {
   const [clock,setClock]=useState(()=>Date.now());
   const state=convergenceState;
   const content=state?.content ?? null;
+  const flow=getConvergenceFlow(state?.step ?? 'HAND_IN');
   useEffect(()=>{const id=window.setInterval(()=>setClock(Date.now()),100);return()=>window.clearInterval(id);},[]);
   const serverOffset=useMemo(()=>state?.server_now?new Date(state.server_now).getTime()-clock:0,[state?.server_now,clock]);
   const serverNow=clock+serverOffset;
@@ -76,7 +78,7 @@ export function DashboardScreen() {
   return <AppShell title="THE CONVERGENCE" showMenu>
     <div className="flex-1 py-3">
       <div className="text-center mb-6"><p className={`inline-flex px-3 py-1 rounded-full border text-[10px] uppercase tracking-[.25em] ${TRACK_STYLES[trackId ?? ''] ?? 'text-gold border-gold/20 bg-gold/5'}`}>Track {trackId} · {trackId==='A'?'RED':trackId==='B'?'BLUE':trackId==='C'?'GREEN':'YELLOW'}</p><h2 className="font-display text-2xl text-offwhite uppercase tracking-widest mt-1">{teamName}</h2></div>
-      <div className="rounded-2xl border border-gold/20 bg-black/30 p-4 mb-5"><div className="flex items-center justify-between text-[10px] uppercase tracking-[.25em] text-muted"><span>Current stage</span><span>{state.stage}/10</span></div><h3 className="font-display text-xl text-gold uppercase tracking-wider mt-2">{label(state.step)}</h3><div className="flex gap-1 mt-4">{Array.from({length:10}).map((_,i)=><div key={i} className={`h-1 flex-1 rounded ${i<Math.min(state.stage,10)?'bg-gold':'bg-white/10'}`}/>)}</div></div>
+      <div className="rounded-2xl border border-gold/20 bg-black/30 p-4 mb-5"><div className="flex items-center justify-between text-[10px] uppercase tracking-[.25em] text-muted"><span>Current event flow</span><span>{flow.position}/10</span></div><h3 className="font-display text-xl text-gold uppercase tracking-wider mt-2">{flow.label}</h3><p className="text-xs uppercase tracking-[.18em] text-offwhite/70 mt-1">{flow.title}</p><div className="flex gap-1 mt-4">{Array.from({length:10}).map((_,i)=><div key={i} className={`h-1 flex-1 rounded ${i<flow.position?'bg-gold':'bg-white/10'}`}/>)}</div></div>
       {state.buffer_active && bufferRemaining>0 ? <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-6 text-center"><div className="text-4xl mb-3">⏳</div><p className="text-[10px] uppercase tracking-[.35em] text-amber-400">Buffer Period</p><h3 className="font-display text-3xl text-offwhite tracking-widest mt-2 font-mono">{formatBuffer(bufferRemaining)}</h3><p className="text-sm text-muted mt-3">The hunt is paused for the 20-minute buffer period. Your progress is saved. Wait for the organizer to start the next stage.</p></div> : !state.game_running || state.status==='PAUSED' || state.step==='STAGE_4_ASSIGNMENT' || state.step==='STAGE_7' ? <div className="rounded-2xl border border-white/10 bg-black/30 p-6 text-center"><div className="text-4xl mb-3">⏸</div><h3 className="font-display text-xl text-offwhite uppercase tracking-widest">Waiting Lounge</h3><p className="text-sm text-muted mt-2">The current stage is paused. Stay ready — this screen will update automatically when the organizer starts the next stage.</p></div> : <div className="space-y-5">
         {content?.sticker_image_url && <div className="mx-auto w-40 h-40 rounded-2xl overflow-hidden border border-gold/30 bg-black/50"><img src={content.sticker_image_url} alt="Mission sticker" className="w-full h-full object-contain"/></div>}
         
@@ -92,7 +94,7 @@ export function DashboardScreen() {
         {showInput && <div className="rounded-2xl border border-white/10 bg-black/30 p-5"><label className="block text-[10px] uppercase tracking-[.25em] text-gold mb-3">{state.step==='HAND_IN'?'':state.step.includes('QR')?'Track QR token / scan result':state.step.includes('CHECKPOINT')?'Enter checkpoint code':state.step.includes('SNIPPET')?'Submit code snippet answer':state.step==='CLUE_9'?'Enter Clue 9 physical code':state.step.includes('ANSWER')?'Enter 7-digit answer':'Enter the physical sticker code'}</label><input value={value} onChange={e=>{setValue(e.target.value.slice(0, state.step.includes('ANSWER')?7:32));setError('')}} inputMode={state.step.includes('ANSWER')||state.step.includes('STICKER')||state.step.includes('CHECKPOINT')?'numeric':'text'} className="w-full bg-void border border-gold/25 rounded-xl px-4 py-4 text-center text-xl tracking-[.25em] text-offwhite outline-none focus:border-gold" placeholder={state.step.includes('ANSWER')?'7-DIGIT ANSWER':'ENTER CODE'} autoComplete="off"/><div className="mt-4"><PrimaryButton disabled={busy || !value.trim()} onClick={()=>void submit(action)}>{busy?'Verifying…':'Submit'}</PrimaryButton></div></div>}
         {error && <p className="text-center text-red-400 text-sm">{error}</p>}
       </div>}
-      <div className="mt-8 text-center text-[9px] uppercase tracking-[.3em] text-muted/60">Progress is server-synced. Refreshing will not reset your route.</div>
+      <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4"><div className="text-[10px] uppercase tracking-[.25em] text-gold mb-3">Event rules</div><div className="grid grid-cols-2 gap-2 text-[10px] uppercase tracking-wider text-muted"><span>✓ Refresh safe</span><span>✓ Internet loss safe</span><span>✓ Progress saved</span><span>⚠ 3 tab violations = elimination</span></div></div><div className="mt-4 text-center text-[9px] uppercase tracking-[.3em] text-muted/60">Progress is server-synced. Refreshing will not reset your route.</div>
     </div>
   </AppShell>;
 }
