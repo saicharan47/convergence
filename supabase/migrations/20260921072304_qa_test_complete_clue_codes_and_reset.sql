@@ -12,9 +12,9 @@ BEGIN
     (team_id,step_key,title,body,instruction,physical_location,code_hash,answer_hash,code_plaintext,answer_plaintext,metadata,published,updated_at)
   VALUES
     (tid,'HAND_IN','QA Hand-In','Find the marked QA envelope at the test table.','Tap I Found Clue 1 when you reach it.','QA TEST TABLE',NULL,NULL,NULL,NULL,'{"qa":true,"clue":1}',true,clock_timestamp()),
-    (tid,'STICKER_1','Clue 1','QA physical Clue 1.','Enter the five-digit code from Clue 1.','QA CLUE 1','$2y$06$GtjFuTYQ.dbiD/xonWEDEu5Mf6ungrhqQQi8dOnQdQ6JuQFX1n3mW',NULL,NULL,NULL,'{"qa":true,"clue":1}',true,clock_timestamp()),
-    (tid,'STICKER_2','Clue 2','QA physical Clue 2.','Enter the five-digit code from Clue 2.','QA CLUE 2','$2y$06$sKDgiSTOe6xHjV/nna3CF.OZXm1Q09IJKOyjEeCvDBfBjDeCSTZcW',NULL,NULL,NULL,'{"qa":true,"clue":2}',true,clock_timestamp()),
-    (tid,'ANSWER_2','Clue 2 Answer','QA seven-digit answer.','Enter the seven-digit answer.','QA CLUE 2',NULL,'$2y$06$fMPflLz8..QQTh9UPzDumujaVe4ASUHXoZO1oM6yxtCAwpv7ozRg.',NULL,NULL,'{"qa":true,"clue":2}',true,clock_timestamp())
+    (tid,'STICKER_1','Clue 1','QA physical Clue 1.','Enter the five-digit code from Clue 1.','QA CLUE 1','$2a$06$GtjFuTYQ.dbiD/xonWEDEu5Mf6ungrhqQQi8dOnQdQ6JuQFX1n3mW',NULL,NULL,NULL,'{"qa":true,"clue":1}',true,clock_timestamp()),
+    (tid,'STICKER_2','Clue 2','QA physical Clue 2.','Enter the five-digit code from Clue 2.','QA CLUE 2','$2a$06$sKDgiSTOe6xHjV/nna3CF.OZXm1Q09IJKOyjEeCvDBfBjDeCSTZcW',NULL,NULL,NULL,'{"qa":true,"clue":2}',true,clock_timestamp()),
+    (tid,'ANSWER_2','Clue 2 Answer','QA seven-digit answer.','Enter the seven-digit answer.','QA CLUE 2',NULL,'$2a$06$fMPflLz8..QQTh9UPzDumujaVe4ASUHXoZO1oM6yxtCAwpv7ozRg.',NULL,NULL,'{"qa":true,"clue":2}',true,clock_timestamp())
   ON CONFLICT (team_id,step_key) DO UPDATE SET
     title=excluded.title,body=excluded.body,instruction=excluded.instruction,physical_location=excluded.physical_location,
     code_hash=excluded.code_hash,answer_hash=excluded.answer_hash,code_plaintext=NULL,answer_plaintext=NULL,
@@ -23,10 +23,10 @@ BEGIN
   INSERT INTO public.convergence_checkpoints
     (stage,track_id,qr_token_hash,checkpoint_code_hash,snippet,snippet_answer_hash,qr_label,active,qr_token_plaintext,checkpoint_code_plaintext,snippet_answer_plaintext,updated_at)
   VALUES
-    (3,'A','$2y$06$LHx1DEet6Fsz72ayj96E0e.1EDevIbPb60uFbOUqIYSVPli36tcAC',
-      '$2y$06$H9k6k37E3LgQe8htvjNJpuLdBGtFwnGPnkLThWm2fO1sGeCGLrrb.',
+    (3,'A','$2a$06$LHx1DEet6Fsz72ayj96E0e.1EDevIbPb60uFbOUqIYSVPli36tcAC',
+      '$2a$06$H9k6k37E3LgQe8htvjNJpuLdBGtFwnGPnkLThWm2fO1sGeCGLrrb.',
       'QA CHECKPOINT 1: What is the output of 6 x 7?',
-      '$2y$06$Y0iQRFQKBEp83T6IAv.8DO/gQUDzd20pd.Kdbsz8vT9ybYj7AXh.i',
+      '$2a$06$Y0iQRFQKBEp83T6IAv.8DO/gQUDzd20pd.Kdbsz8vT9ybYj7AXh.i',
       'QA TRACK A · RED · CHECKPOINT 1',true,NULL,NULL,NULL,clock_timestamp())
   ON CONFLICT (stage,track_id) DO UPDATE SET
     qr_token_hash=excluded.qr_token_hash,checkpoint_code_hash=excluded.checkpoint_code_hash,
@@ -37,12 +37,12 @@ BEGIN
     (team_id,step_key,title,body,instruction,physical_location,code_hash,answer_hash,code_plaintext,answer_plaintext,metadata,published,updated_at)
   VALUES
     (tid,'RIDDLE_4','Clue 4 Riddle','QA Riddle 4: Find the next marked envelope.','Tap continue when solved.','QA CLUE 4',NULL,NULL,NULL,NULL,'{"qa":true,"clue":4}',true,clock_timestamp()),
-    (tid,'STICKER_4','Clue 4','QA physical Clue 4.','Enter the five-digit code.','QA CLUE 4','$2y$06$UFcQHUTYQ9U.nvh4Dn.B8u.7ZS4fzuYNhoJinXBcY79WHBZI8bxsK',NULL,NULL,NULL,'{"qa":true,"clue":4}',true,clock_timestamp()),
-    (tid,'STICKER_5','Clue 5','QA physical Clue 5.','Enter the five-digit code.','QA CLUE 5','$2y$06$9DXU3SFekieGHxBigmJA6uoAmh4jUY0vqb2nq7KVYR.5sM3mBxKhW',NULL,NULL,NULL,'{"qa":true,"clue":5}',true,clock_timestamp()),
-    (tid,'ANSWER_5','Clue 5 Answer','QA seven-digit answer.','Enter the seven-digit answer.','QA CLUE 5',NULL,'$2y$06$36vAigabwhq.I/OAn8E6XOv/6nOYUUEyb4KYcYl2IX2Yg5FmEfx8y',NULL,NULL,'{"qa":true,"clue":5}',true,clock_timestamp()),
+    (tid,'STICKER_4','Clue 4','QA physical Clue 4.','Enter the five-digit code.','QA CLUE 4','$2a$06$UFcQHUTYQ9U.nvh4Dn.B8u.7ZS4fzuYNhoJinXBcY79WHBZI8bxsK',NULL,NULL,NULL,'{"qa":true,"clue":4}',true,clock_timestamp()),
+    (tid,'STICKER_5','Clue 5','QA physical Clue 5.','Enter the five-digit code.','QA CLUE 5','$2a$06$9DXU3SFekieGHxBigmJA6uoAmh4jUY0vqb2nq7KVYR.5sM3mBxKhW',NULL,NULL,NULL,'{"qa":true,"clue":5}',true,clock_timestamp()),
+    (tid,'ANSWER_5','Clue 5 Answer','QA seven-digit answer.','Enter the seven-digit answer.','QA CLUE 5',NULL,'$2a$06$36vAigabwhq.I/OAn8E6XOv/6nOYUUEyb4KYcYl2IX2Yg5FmEfx8y',NULL,NULL,'{"qa":true,"clue":5}',true,clock_timestamp()),
     (tid,'RIDDLE_7','Clue 7 Riddle','QA Riddle 7: Follow the final marked path.','Tap continue when solved.','QA CLUE 7',NULL,NULL,NULL,NULL,'{"qa":true,"clue":7}',true,clock_timestamp()),
-    (tid,'STICKER_7','Clue 7','QA physical Clue 7.','Enter the five-digit code.','QA CLUE 7','$2y$06$3uvSTHHtfXSWNnh7JMdQuOiwHNfHf0ChUq.eIhJTPXLepd9RxDgLe',NULL,NULL,NULL,'{"qa":true,"clue":7}',true,clock_timestamp()),
-    (tid,'CLUE_9','Clue 9','QA final qualifying clue.','Enter the five-digit Clue 9 code.','QA CLUE 9','$2y$06$rp7b0JACd01vyotTeLOnleLzTsCCyVquow4xMIq6QWNiZ2Ms1f6FO',NULL,NULL,NULL,'{"qa":true,"clue":9}',true,clock_timestamp())
+    (tid,'STICKER_7','Clue 7','QA physical Clue 7.','Enter the five-digit code.','QA CLUE 7','$2a$06$3uvSTHHtfXSWNnh7JMdQuOiwHNfHf0ChUq.eIhJTPXLepd9RxDgLe',NULL,NULL,NULL,'{"qa":true,"clue":7}',true,clock_timestamp()),
+    (tid,'CLUE_9','Clue 9','QA final qualifying clue.','Enter the five-digit Clue 9 code.','QA CLUE 9','$2a$06$rp7b0JACd01vyotTeLOnleLzTsCCyVquow4xMIq6QWNiZ2Ms1f6FO',NULL,NULL,NULL,'{"qa":true,"clue":9}',true,clock_timestamp())
   ON CONFLICT (team_id,step_key) DO UPDATE SET
     title=excluded.title,body=excluded.body,instruction=excluded.instruction,physical_location=excluded.physical_location,
     code_hash=excluded.code_hash,answer_hash=excluded.answer_hash,code_plaintext=NULL,answer_plaintext=NULL,
@@ -51,10 +51,10 @@ BEGIN
   INSERT INTO public.convergence_checkpoints
     (stage,track_id,qr_token_hash,checkpoint_code_hash,snippet,snippet_answer_hash,qr_label,active,qr_token_plaintext,checkpoint_code_plaintext,snippet_answer_plaintext,updated_at)
   VALUES
-    (6,'A','$2y$06$Me12iWe0n.aiHCqmF64phu3tMdMM6EJXWVf7v7dnNJNn/mTu9Deiq',
-      '$2y$06$tWMF/KMl6rf1QBZhVzF7uuwwMWlna1YOqHWQkczJITnnGb4kq93iO',
+    (6,'A','$2a$06$Me12iWe0n.aiHCqmF64phu3tMdMM6EJXWVf7v7dnNJNn/mTu9Deiq',
+      '$2a$06$tWMF/KMl6rf1QBZhVzF7uuwwMWlna1YOqHWQkczJITnnGb4kq93iO',
       'QA CHECKPOINT 2: What is 12 x 7?',
-      '$2y$06$B1Ct8H6bORNN6HHPy.jWTuXPi22o8boAsSfRzoJO2S6Qtr9tTagz6',
+      '$2a$06$B1Ct8H6bORNN6HHPy.jWTuXPi22o8boAsSfRzoJO2S6Qtr9tTagz6',
       'QA TRACK A · RED · CHECKPOINT 2',true,NULL,NULL,NULL,clock_timestamp())
   ON CONFLICT (stage,track_id) DO UPDATE SET
     qr_token_hash=excluded.qr_token_hash,checkpoint_code_hash=excluded.checkpoint_code_hash,
