@@ -26,6 +26,7 @@ jobs:
           test -f scripts/convergence-regression-test.mjs
           test -f supabase/migrations/20260920210000_convergence_spec_completion.sql
           test -f supabase/migrations/20260920220000_convergence_rate_limit_atomic_window.sql
+          test -f supabase/migrations/20260921143000_dynamic_position_progression.sql
       - name: Lint
         run: npm run lint
       - name: Convergence regression tests
