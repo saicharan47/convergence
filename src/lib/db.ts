@@ -228,7 +228,7 @@ export async function getConvergenceStickers():Promise<ConvergenceSticker[]> {
 }
 export async function uploadConvergenceSticker(file:File,stickerName:string,clueNumber:number,stageGroup:number):Promise<ConvergenceSticker> {
   const ext=file.name.split('.').pop()?.toLowerCase()||'png';
-  const path=\`clue-\${clueNumber}/\${crypto.randomUUID()}.\${ext}\`;
+  const path=`clue-${clueNumber}/${crypto.randomUUID()}.${ext}`;
   const {error}=await supabase.storage.from('convergence-stickers').upload(path,file,{contentType:file.type||'image/png',cacheControl:'3600',upsert:false});
   if(error)throw error;
   const {data:{publicUrl}}=supabase.storage.from('convergence-stickers').getPublicUrl(path);
