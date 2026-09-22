@@ -61,9 +61,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('teamId', convergence.team_id);
         localStorage.setItem('teamName', convergence.name);
         localStorage.setItem('trackId', convergence.track_id);
-      } catch (error) {
+      } catch {
         if (!cancelled) {
-          console.error('[Convergence] live state refresh failed', error);
+          // Network/realtime outages are expected to recover automatically; avoid noisy
+          // console.error entries while the UI already exposes the degraded-state message.
           setConvergenceLoadError('Live route sync is unavailable. Retrying automatically…');
         }
       }
@@ -108,6 +109,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setRealtimeKey(null);
     setProgress(null);
     setConvergenceState(null);
+    setConvergenceLoadError(null);
     localStorage.removeItem('teamId');
     localStorage.removeItem('teamName');
     localStorage.removeItem('trackId');
